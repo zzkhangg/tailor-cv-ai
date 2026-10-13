@@ -1,8 +1,8 @@
 # TailorCV — AI-Powered Resume Tailoring Platform
 
-## Phase 1 implementation status (14 October 2026)
+## Phase 2 implementation status (14 October 2026)
 
-The monorepo contains a minimal React frontend, Java API, Python API, and PostgreSQL schema. Only health endpoints are active. The API contracts below describe the later MVP; upload, parsing, tailoring, preview, and export are not implemented yet.
+The monorepo contains a minimal React frontend, Java API, Python API, and PostgreSQL schema. Phase 2 adds backend PDF upload, conservative structured parsing, resume retrieval, and job description creation. The browser page still shows service status; the upload and result UI are scheduled for Phase 4. Tailoring and PDF export remain future work.
 
 ### Run locally
 
@@ -13,13 +13,25 @@ The monorepo contains a minimal React frontend, Java API, Python API, and Postgr
 5. Check `http://localhost:8080/api/v1/health`, `http://localhost:8080/actuator/health/liveness`, and `http://localhost:8080/actuator/health/readiness`.
 6. Run `docker compose down` to stop services. Add `-v` only if you intend to remove local database data.
 
+### Try the Phase 2 APIs
+
+Run `python3 tests/fixtures/make_sample_pdf.py` to generate a clearly fictional, selectable-text `sample-resume.pdf` (ignored by Git). Then, from the repository root:
+
+```bash
+curl -sS -F "file=@sample-resume.pdf;type=application/pdf" http://localhost:8080/api/v1/resumes
+curl -sS -H 'Content-Type: application/json' -d '{"title":"Software Engineer","description":"Build reliable Java and Python services for a small team."}' http://localhost:8080/api/v1/jobs
+curl -sS http://localhost:8080/api/v1/resumes/REPLACE_WITH_RESUME_ID
+```
+
+The upload response contains `resume_id`, `raw_text`, and `parsed_resume`; the job response contains `job_id`. Run `docker compose restart resume-service` and repeat the `GET` to check persistence. Delete the generated sample PDF when finished. Phase 2 parsing handles clearly labelled text and leaves unrecognized fields empty; Phase 3 adds AI-based parsing.
+
 The frontend and Java API bind to localhost. Python and PostgreSQL are reachable only on the Compose network. Java calls `http://ai-service:8000/health` during readiness; liveness remains independent. For local Java development outside Compose, set `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, and `AI_SERVICE_URL` as needed.
 
 ### Checks and versions
 
-Use `docker compose config --quiet`, `docker compose build`, and `docker compose up --build --wait` for the full stack. In `frontend`, run `npm ci`, `npm test`, and `npm run build`. In `services/ai-service`, install `requirements-dev.lock` with Python 3.12 and run `python -m pytest`. In `services/resume-service`, run `./mvnw test` (or `mvn test`); the persistence test needs Docker for Testcontainers.
+Use `./start.sh` for the full stack, especially when working in WSL from `/mnt/c`: it prepares a clean Python build context so Windows-owned test caches cannot block Docker. On a native Linux checkout, `docker compose config --quiet`, `docker compose build`, and `docker compose up --build --wait` also work. In `frontend`, run `npm ci`, `npm test`, and `npm run build`. In `services/ai-service`, install `requirements-dev.lock` with Python 3.12 and run `python -m pytest`. In `services/resume-service`, run `./mvnw test` (or `mvn test`); the persistence test needs Docker for Testcontainers.
 
-Runtime versions: Java 21, Spring Boot 3.5.6, Maven 3.9.11 in the build image, Python 3.12, FastAPI 0.116.1, Pydantic 2.11.7, Node 22, React 19.1.1, Vite 7.1.7, Tailwind CSS 4.1.13, and PostgreSQL 17. Dependency versions are pinned in the Maven POM, Python requirements, and frontend package lock. See `docs/contracts/` for shared JSON and endpoint status.
+Runtime versions: Java 21, Spring Boot 3.5.6, PDFBox 3.0.8, Maven 3.9.11 in the build image, Python 3.12, FastAPI 0.116.1, Pydantic 2.11.7, Node 22, React 19.1.1, Vite 7.1.7, Tailwind CSS 4.1.13, and PostgreSQL 17. Dependency versions are pinned in the Maven POM, Python requirements, and frontend package lock. See `docs/contracts/` for shared JSON and endpoint status.
 
 > **Project specification and implementation plan** for INFS3208 Cloud Computing Individual Project (Type I). This document describes the intended application; features are **not yet implemented**.
 
