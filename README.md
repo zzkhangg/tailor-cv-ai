@@ -1,5 +1,26 @@
 # TailorCV — AI-Powered Resume Tailoring Platform
 
+## Phase 1 implementation status (14 October 2026)
+
+The monorepo contains a minimal React frontend, Java API, Python API, and PostgreSQL schema. Only health endpoints are active. The API contracts below describe the later MVP; upload, parsing, tailoring, preview, and export are not implemented yet.
+
+### Run locally
+
+1. Install Docker Desktop with Compose and ensure the Docker daemon is running.
+2. Copy `.env.example` to `.env` and change `POSTGRES_PASSWORD` for your local machine.
+3. Run `docker compose up --build --wait` from this directory.
+4. Open `http://localhost:3000`. The API status should read **Available**.
+5. Check `http://localhost:8080/api/v1/health`, `http://localhost:8080/actuator/health/liveness`, and `http://localhost:8080/actuator/health/readiness`.
+6. Run `docker compose down` to stop services. Add `-v` only if you intend to remove local database data.
+
+The frontend and Java API bind to localhost. Python and PostgreSQL are reachable only on the Compose network. Java calls `http://ai-service:8000/health` during readiness; liveness remains independent. For local Java development outside Compose, set `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, and `AI_SERVICE_URL` as needed.
+
+### Checks and versions
+
+Use `docker compose config --quiet`, `docker compose build`, and `docker compose up --build --wait` for the full stack. In `frontend`, run `npm ci`, `npm test`, and `npm run build`. In `services/ai-service`, install `requirements-dev.lock` with Python 3.12 and run `python -m pytest`. In `services/resume-service`, run `./mvnw test` (or `mvn test`); the persistence test needs Docker for Testcontainers.
+
+Runtime versions: Java 21, Spring Boot 3.5.6, Maven 3.9.11 in the build image, Python 3.12, FastAPI 0.116.1, Pydantic 2.11.7, Node 22, React 19.1.1, Vite 7.1.7, Tailwind CSS 4.1.13, and PostgreSQL 17. Dependency versions are pinned in the Maven POM, Python requirements, and frontend package lock. See `docs/contracts/` for shared JSON and endpoint status.
+
 > **Project specification and implementation plan** for INFS3208 Cloud Computing Individual Project (Type I). This document describes the intended application; features are **not yet implemented**.
 
 ## 1. Goal
