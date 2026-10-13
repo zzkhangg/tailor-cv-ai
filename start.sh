@@ -19,6 +19,9 @@ if [[ ! -f .env ]]; then
   exit 1
 fi
 
+# A pytest cache created on Windows can block Docker's WSL build-context scan.
+rm -rf -- "$project_dir/services/ai-service/.pytest_cache"
+
 docker compose config --quiet
 docker compose up --build --wait
 
