@@ -8,7 +8,7 @@ The monorepo contains a minimal React frontend, Java API, Python API, and Postgr
 
 1. Install Docker Desktop with Compose and ensure the Docker daemon is running.
 2. Copy `.env.example` to `.env` and change `POSTGRES_PASSWORD` for your local machine.
-3. Run `docker compose up --build --wait` from this directory.
+3. Run `./start.sh` from this directory (or `bash start.sh` if it is not executable). This runs `docker compose up --build --wait`.
 4. Open `http://localhost:3000`. The API status should read **Available**.
 5. Check `http://localhost:8080/api/v1/health`, `http://localhost:8080/actuator/health/liveness`, and `http://localhost:8080/actuator/health/readiness`.
 6. Run `docker compose down` to stop services. Add `-v` only if you intend to remove local database data.
