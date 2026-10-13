@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class StrictModel(BaseModel):
@@ -31,3 +31,7 @@ class CanonicalResume(StrictModel):
 
 class HealthResponse(StrictModel):
     status: str
+
+
+class ParseRequest(StrictModel):
+    text: str = Field(min_length=1)
