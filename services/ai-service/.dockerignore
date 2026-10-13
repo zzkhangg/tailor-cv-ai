@@ -1,4 +1,5 @@
-__pycache__
-.pytest_cache
-.venv
-tests
+*
+!Dockerfile
+!requirements.lock
+!app/
+!app/*.py

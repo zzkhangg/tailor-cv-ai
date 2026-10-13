@@ -19,14 +19,26 @@ if [[ ! -f .env ]]; then
   exit 1
 fi
 
-# A pytest cache created on Windows can block Docker's WSL build-context scan.
-rm -rf -- "$project_dir/services/ai-service/.pytest_cache"
+# Keep Windows-owned test caches out of Docker's WSL build-context scan.
+build_dir="$(mktemp -d)"
+trap 'rm -rf -- "$build_dir"' EXIT
+mkdir -p "$build_dir/ai-service/app"
+cp "$project_dir/services/ai-service/Dockerfile" \
+   "$project_dir/services/ai-service/requirements.lock" "$build_dir/ai-service/"
+cp "$project_dir/services/ai-service/app/"*.py "$build_dir/ai-service/app/"
+cat > "$build_dir/compose.override.yaml" <<EOF
+services:
+  ai-service:
+    build:
+      context: $build_dir/ai-service
+EOF
 
-docker compose config --quiet
-docker compose up --build --wait
+compose=(docker compose -f "$project_dir/compose.yaml" -f "$build_dir/compose.override.yaml")
+"${compose[@]}" config --quiet
+"${compose[@]}" up --build --wait
 
-frontend_port="$(docker compose port frontend 80)"
-api_port="$(docker compose port resume-service 8080)"
+frontend_port="$("${compose[@]}" port frontend 80)"
+api_port="$("${compose[@]}" port resume-service 8080)"
 echo "TailorCV is ready."
 echo "Frontend: http://localhost:${frontend_port##*:}"
 echo "API health: http://localhost:${api_port##*:}/api/v1/health"
