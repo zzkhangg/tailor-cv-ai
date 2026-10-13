@@ -2,14 +2,14 @@
 
 ## Phase 2 implementation status (14 October 2026)
 
-The monorepo contains a minimal React frontend, Java API, Python API, and PostgreSQL schema. Phase 2 adds backend PDF upload, conservative structured parsing, resume retrieval, and job description creation. The browser page still shows service status; the upload and result UI are scheduled for Phase 4. Tailoring and PDF export remain future work.
+The monorepo contains a React frontend, Java API, Python API, and PostgreSQL schema. Phase 2 adds backend PDF upload, conservative structured parsing, resume retrieval, and job description creation. An early part of the Phase 4 UI now supports PDF upload, job description entry, and a basic parsed-resume result. Tailoring, full preview, and PDF export remain future work.
 
 ### Run locally
 
 1. Install Docker Desktop with Compose and ensure the Docker daemon is running.
 2. Copy `.env.example` to `.env` and change `POSTGRES_PASSWORD` for your local machine.
 3. Run `./start.sh` from this directory (or `bash start.sh` if it is not executable). This builds and starts the stack, then runs a Phase 2 smoke test with a fictional PDF and job description. Python 3 is required on the host for this smoke test. Each run creates one fictional resume and job in the local database and prints their IDs.
-4. Open `http://localhost:3000`. The API status should read **Available**.
+4. Open `http://localhost:3000`. The API status should read **Available**. For a fictional UI test, run `python3 tests/fixtures/make_sample_pdf.py`, choose `sample-resume.pdf` in the **Resume PDF** field, and click **Upload and parse PDF**. The page should show Jane Doe and a resume ID. Enter a job description of at least 30 characters and click **Save job description**; the page should show a job ID. Delete the generated PDF when finished.
 5. Check `http://localhost:8080/api/v1/health`, `http://localhost:8080/actuator/health/liveness`, and `http://localhost:8080/actuator/health/readiness`.
 6. Run `docker compose down` to stop services. Add `-v` only if you intend to remove local database data.
 
