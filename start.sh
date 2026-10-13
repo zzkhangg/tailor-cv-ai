@@ -19,6 +19,11 @@ if [[ ! -f .env ]]; then
   exit 1
 fi
 
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "Python 3 is required for the automatic Phase 2 smoke test." >&2
+  exit 1
+fi
+
 # Keep Windows-owned test caches out of Docker's WSL build-context scan.
 build_dir="$(mktemp -d)"
 trap 'rm -rf -- "$build_dir"' EXIT
@@ -42,4 +47,5 @@ api_port="$("${compose[@]}" port resume-service 8080)"
 echo "TailorCV is ready."
 echo "Frontend: http://localhost:${frontend_port##*:}"
 echo "API health: http://localhost:${api_port##*:}/api/v1/health"
+PYTHONDONTWRITEBYTECODE=1 python3 tests/phase2_smoke.py --api-url "http://localhost:${api_port##*:}"
 echo "Stop services with: docker compose down"

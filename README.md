@@ -8,7 +8,7 @@ The monorepo contains a minimal React frontend, Java API, Python API, and Postgr
 
 1. Install Docker Desktop with Compose and ensure the Docker daemon is running.
 2. Copy `.env.example` to `.env` and change `POSTGRES_PASSWORD` for your local machine.
-3. Run `./start.sh` from this directory (or `bash start.sh` if it is not executable). This runs `docker compose up --build --wait`.
+3. Run `./start.sh` from this directory (or `bash start.sh` if it is not executable). This builds and starts the stack, then runs a Phase 2 smoke test with a fictional PDF and job description. Python 3 is required on the host for this smoke test. Each run creates one fictional resume and job in the local database and prints their IDs.
 4. Open `http://localhost:3000`. The API status should read **Available**.
 5. Check `http://localhost:8080/api/v1/health`, `http://localhost:8080/actuator/health/liveness`, and `http://localhost:8080/actuator/health/readiness`.
 6. Run `docker compose down` to stop services. Add `-v` only if you intend to remove local database data.
