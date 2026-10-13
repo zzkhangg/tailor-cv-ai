@@ -1,5 +1,6 @@
 package com.tailorcv.resume.client;
 
+import com.tailorcv.resume.dto.CanonicalResume;
 import java.net.SocketTimeoutException;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,6 +11,7 @@ import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.UnknownContentTypeException;
 
 @Component("aiService")
@@ -44,6 +46,34 @@ public class AiServiceClient implements HealthIndicator {
                 }
                 if (cause instanceof HttpMessageConversionException) {
                     throw new AiServiceException(502, "Invalid AI service health response", e);
+                }
+                cause = cause.getCause();
+            }
+            throw new AiServiceException(503, "AI service unavailable", e);
+        }
+    }
+
+    public CanonicalResume parse(String text) {
+        try {
+            CanonicalResume result = client.post().uri("/internal/parse")
+                    .body(Map.of("text", text)).retrieve().body(CanonicalResume.class);
+            if (result == null) throw new AiServiceException(502, "Parser returned an empty resume.");
+            return result;
+        } catch (AiServiceException e) {
+            throw e;
+        } catch (RestClientResponseException e) {
+            if (e.getStatusCode().value() == 422) {
+                throw new AiServiceException(422, "Resume text could not be parsed.", e);
+            }
+            throw new AiServiceException(503, "AI service unavailable", e);
+        } catch (RestClientException e) {
+            Throwable cause = e;
+            while (cause != null) {
+                if (cause instanceof SocketTimeoutException) {
+                    throw new AiServiceException(504, "AI service timed out", e);
+                }
+                if (cause instanceof HttpMessageConversionException) {
+                    throw new AiServiceException(502, "Parser returned an invalid resume.", e);
                 }
                 cause = cause.getCause();
             }

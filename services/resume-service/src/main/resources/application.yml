@@ -7,6 +7,10 @@ spring:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/tailorcv}
     username: ${DATABASE_USER:tailorcv}
     password: ${DATABASE_PASSWORD:tailorcv}
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
   jpa:
     hibernate:
       ddl-auto: validate

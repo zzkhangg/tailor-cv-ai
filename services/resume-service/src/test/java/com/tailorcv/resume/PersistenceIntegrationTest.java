@@ -1,6 +1,8 @@
 package com.tailorcv.resume;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tailorcv.resume.client.AiServiceClient;
+import com.tailorcv.resume.dto.CanonicalResume;
 import com.tailorcv.resume.entity.JobDescriptionEntity;
 import com.tailorcv.resume.entity.ResumeEntity;
 import com.tailorcv.resume.entity.TailoringRunEntity;
@@ -12,16 +14,26 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.mock.web.MockMultipartFile;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @Testcontainers
 @SpringBootTest
+@AutoConfigureMockMvc
 class PersistenceIntegrationTest {
     @Container static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine");
     @DynamicPropertySource static void database(DynamicPropertyRegistry registry) {
@@ -34,6 +46,8 @@ class PersistenceIntegrationTest {
     @Autowired JobDescriptionRepository jobs;
     @Autowired TailoringRunRepository runs;
     @Autowired ObjectMapper mapper;
+    @Autowired MockMvc mvc;
+    @MockitoBean AiServiceClient ai;
 
     @Test void migrationAndEntitiesRoundTrip() {
         var resume = new ResumeEntity();
@@ -62,5 +76,37 @@ class PersistenceIntegrationTest {
 
         assertEquals("Jane Doe", resumes.findById(resume.id).orElseThrow().parsedJson.get("name").asText());
         assertEquals(TailoringRunEntity.Status.PENDING, runs.findById(run.id).orElseThrow().status);
+    }
+
+    @Test void uploadAndReadResumeThroughPublicApi() throws Exception {
+        var parsed = new CanonicalResume("Jane Doe", new CanonicalResume.Contact("", "", ""),
+                "", java.util.List.of(), java.util.List.of(), java.util.List.of(), java.util.List.of());
+        when(ai.parse(anyString())).thenReturn(parsed);
+        var file = new MockMultipartFile("file", "fictional.pdf", "application/pdf", PdfExtractionServiceTest.pdf("Jane Doe"));
+        var response = mvc.perform(multipart("/api/v1/resumes").file(file))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.parsed_resume.name").value("Jane Doe"))
+                .andReturn().getResponse();
+        var id = java.util.UUID.fromString(mapper.readTree(response.getContentAsString()).get("resume_id").asText());
+        mvc.perform(get("/api/v1/resumes/{id}", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.parsed_resume.name").value("Jane Doe"))
+                .andExpect(jsonPath("$.original_pdf").doesNotExist());
+        assertArrayEquals(file.getBytes(), resumes.findById(id).orElseThrow().originalPdf);
+    }
+
+    @Test void createJobWithValidation() throws Exception {
+        var response = mvc.perform(post("/api/v1/jobs").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Software Engineer\",\"description\":\"Build reliable Java and Python services.\"}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse();
+        var id = UUID.fromString(mapper.readTree(response.getContentAsString()).get("job_id").asText());
+        assertEquals("Software Engineer", jobs.findById(id).orElseThrow().title);
+        mvc.perform(post("/api/v1/jobs").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"description\":\"short\"}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/v1/jobs").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"description\":\"one word                         \"}"))
+                .andExpect(status().isBadRequest());
     }
 }
