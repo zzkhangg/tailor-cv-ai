@@ -1,0 +1,17 @@
+{
+  "name": "Jane Doe",
+  "contact": {"email": "jane@example.com", "phone": "", "location": ""},
+  "summary": "Software engineering student.",
+  "skills": ["Python", "FastAPI"],
+  "experience": [
+    {
+      "company": "Example Co",
+      "title": "Software Intern",
+      "start_date": "2025-01",
+      "end_date": "2025-03",
+      "bullets": ["Developed REST APIs using Python."]
+    }
+  ],
+  "projects": [],
+  "education": []
+}
