@@ -41,6 +41,11 @@ class AiServiceClientTest {
         assertEquals(502, assertThrows(AiServiceException.class, client::checkHealth).status());
     }
 
+    @Test void malformedJsonIsBadGateway() throws Exception {
+        var client = start(200, "{invalid", 0, 500);
+        assertEquals(502, assertThrows(AiServiceException.class, client::checkHealth).status());
+    }
+
     @Test void downstreamFailureIsUnavailable() throws Exception {
         var client = start(503, "down", 0, 500);
         assertEquals(503, assertThrows(AiServiceException.class, client::checkHealth).status());
