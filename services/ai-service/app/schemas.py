@@ -51,8 +51,8 @@ class TailorRequest(StrictModel):
 
 
 class TailorModelOutput(StrictModel):
-    skills: list[str]
-    experience_bullets: list[list[str]]
+    skill_indices: list[int]
+    experience_bullet_indices: list[list[int]]
     missing_requirements: list[str]
 
 

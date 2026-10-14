@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 import pytest
 
 from app.main import app
-from app.schemas import CanonicalResume, TailorModelOutput, TailorRequest
+from app.schemas import CanonicalResume, TailorModelOutput
 from app.tailoring import verify_grounding
 
 
@@ -29,8 +29,8 @@ def test_tailor_requires_key(monkeypatch):
 
 def test_tailor_reorders_only_source_facts(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "fictional-test-key")
-    output = TailorModelOutput(skills=["Java", "Python"],
-                               experience_bullets=[["Wrote tests.", "Built APIs."]],
+    output = TailorModelOutput(skill_indices=[1, 0],
+                               experience_bullet_indices=[[1, 0]],
                                missing_requirements=["Kubernetes"])
     calls = []
 
@@ -50,37 +50,56 @@ def test_tailor_reorders_only_source_facts(monkeypatch):
 
 
 @pytest.mark.parametrize("skills,bullets", [
-    (["Kubernetes"], [["Built APIs."]]),
-    (["Python"], [["Led a team of 100."]]),
-    (["Python"], []),
+    ([2], [[0]]),
+    ([0], [[2]]),
+    ([0, 0], [[0]]),
+    ([0], []),
 ])
-def test_grounding_rejects_unsupported_resume_facts(skills, bullets):
-    output = TailorModelOutput(skills=skills, experience_bullets=bullets,
+def test_grounding_filters_invalid_indices_without_inventing_facts(skills, bullets):
+    output = TailorModelOutput(skill_indices=skills, experience_bullet_indices=bullets,
                                missing_requirements=[])
-    with pytest.raises(ValueError):
-        verify_grounding(CanonicalResume.model_validate(SOURCE), output, JD)
+    tailored, _, flagged = verify_grounding(CanonicalResume.model_validate(SOURCE), output, JD)
+    assert flagged
+    assert set(tailored.skills) <= set(SOURCE["skills"])
+    assert set(tailored.experience[0].bullets) <= set(SOURCE["experience"][0]["bullets"])
 
 
-def test_grounding_rejects_missing_requirement_not_in_job():
-    output = TailorModelOutput(skills=SOURCE["skills"], experience_bullets=[SOURCE["experience"][0]["bullets"]],
+def test_grounding_filters_missing_requirement_not_in_job():
+    output = TailorModelOutput(skill_indices=[0, 1], experience_bullet_indices=[[0, 1]],
                                missing_requirements=["Cloud certification"])
-    with pytest.raises(ValueError):
-        verify_grounding(CanonicalResume.model_validate(SOURCE), output, JD)
+    _, missing, flagged = verify_grounding(CanonicalResume.model_validate(SOURCE), output, JD)
+    assert missing == []
+    assert flagged
 
 
-def test_grounding_rejects_requirement_already_in_resume():
-    output = TailorModelOutput(skills=SOURCE["skills"], experience_bullets=[SOURCE["experience"][0]["bullets"]],
+def test_grounding_filters_requirement_already_in_resume():
+    output = TailorModelOutput(skill_indices=[0, 1], experience_bullet_indices=[[0, 1]],
                                missing_requirements=["Python"])
-    with pytest.raises(ValueError):
-        verify_grounding(CanonicalResume.model_validate(SOURCE), output, JD)
+    _, missing, flagged = verify_grounding(CanonicalResume.model_validate(SOURCE), output, JD)
+    assert missing == []
+    assert flagged
 
 
-def test_endpoint_rejects_unsupported_ai_output(monkeypatch):
+def test_endpoint_flags_unsupported_requirement_but_returns_grounded_resume(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "fictional-test-key")
-    output = TailorModelOutput(skills=["Kubernetes"], experience_bullets=[SOURCE["experience"][0]["bullets"]],
+    output = TailorModelOutput(skill_indices=[1, 0], experience_bullet_indices=[[0, 1]],
+                               missing_requirements=["Cloud certification"])
+    monkeypatch.setattr("app.tailoring.OpenAI", lambda **kwargs: SimpleNamespace(
+        responses=SimpleNamespace(parse=lambda **kwargs: SimpleNamespace(output_parsed=output))))
+    response = TestClient(app).post("/internal/tailor", json={"resume": SOURCE, "job_description": JD})
+    assert response.status_code == 200
+    assert response.json()["tailored_resume"]["skills"] == ["Java", "Python"]
+    assert response.json()["missing_requirements"] == []
+    assert any("Ignored AI suggestions" in line for line in response.json()["change_summary"])
+
+
+def test_endpoint_flags_unsupported_ai_indices(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "fictional-test-key")
+    output = TailorModelOutput(skill_indices=[2], experience_bullet_indices=[[0, 1]],
                                missing_requirements=[])
     monkeypatch.setattr("app.tailoring.OpenAI", lambda **kwargs: SimpleNamespace(
         responses=SimpleNamespace(parse=lambda **kwargs: SimpleNamespace(output_parsed=output))))
     response = TestClient(app).post("/internal/tailor", json={"resume": SOURCE, "job_description": JD})
-    assert response.status_code == 422
-    assert response.json() == {"detail": "AI result contained unsupported or invalid claims."}
+    assert response.status_code == 200
+    assert response.json()["tailored_resume"]["skills"] == SOURCE["skills"]
+    assert any("Ignored AI suggestions" in line for line in response.json()["change_summary"])

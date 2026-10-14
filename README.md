@@ -26,7 +26,7 @@ curl -sS -H 'Content-Type: application/json' \
 curl -sS http://localhost:8080/api/v1/tailor/REPLACE_WITH_RUN_ID
 ```
 
-The first response includes `run_id`, `tailored_resume`, `change_summary`, and `missing_requirements`. Phase 3 only reorders or selects existing skills and experience bullets; it preserves all other fields from the original. Review the output before using it. The OpenAI SDK is pinned to 3.29.0, the default configurable model is `gpt-4o-mini`, and the request uses a 30-second timeout with at most one SDK retry. Configure `OPENAI_MODEL` in `.env` to choose another compatible structured-output model.
+The first response includes `run_id`, `tailored_resume`, `change_summary`, and `missing_requirements`. Phase 3 only reorders or selects existing skills and experience bullets; it preserves all other fields from the original. The AI selects by index, and invalid selections or unverified missing requirements are discarded and flagged in `change_summary`. Review the output before using it. The OpenAI SDK is pinned to 3.29.0, the default configurable model is `gpt-4o-mini`, and the request uses a 30-second timeout with at most one SDK retry. Configure `OPENAI_MODEL` in `.env` to choose another compatible structured-output model.
 
 ### Try the Phase 2 APIs
 
