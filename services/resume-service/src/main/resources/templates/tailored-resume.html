@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title th:text="${#strings.isEmpty(resume.name) ? 'Tailored resume' : resume.name + ' — Resume'}">Tailored resume</title>
+  <style>
+    @page { size: A4; margin: 17mm 18mm 18mm; }
+    * { box-sizing: border-box; }
+    html { background: #eef2f3; }
+    body { margin: 0 auto; max-width: 210mm; min-height: 297mm; padding: 17mm 18mm 18mm; background: #fff; color: #172033; font-family: Arial, Helvetica, sans-serif; font-size: 10.5pt; line-height: 1.45; }
+    header { border-bottom: 2px solid #087e76; padding-bottom: 12px; }
+    h1 { margin: 0; font-size: 25pt; line-height: 1.1; letter-spacing: -0.5px; }
+    .contact { margin: 7px 0 0; color: #3e4a5f; }
+    .contact span + span::before { content: "  |  "; color: #82909f; white-space: pre; }
+    section { margin-top: 18px; }
+    h2 { margin: 0 0 7px; border-bottom: 1px solid #b9c4ca; padding-bottom: 4px; color: #087e76; font-size: 11.5pt; letter-spacing: 0.4px; text-transform: uppercase; }
+    p { margin: 0; }
+    ul { margin: 5px 0 0; padding-left: 18px; }
+    li { margin: 2px 0; }
+    .skills { margin: 0; padding: 0; list-style: none; }
+    .skills li { display: inline; }
+    .skills li + li::before { content: " • "; color: #087e76; }
+    .role { page-break-inside: avoid; margin-top: 12px; }
+    .role-heading { display: table; width: 100%; }
+    .role-heading strong, .dates { display: table-cell; }
+    .dates { text-align: right; white-space: nowrap; color: #596579; }
+    .company { margin-top: 1px; color: #3e4a5f; }
+    @media print { html { background: #fff; } body { padding: 0; min-height: auto; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 th:text="${#strings.isEmpty(resume.name) ? 'Resume' : resume.name}">Jane Doe</h1>
+    <p class="contact" th:if="${!#strings.isEmpty(resume.contact.email) or !#strings.isEmpty(resume.contact.phone) or !#strings.isEmpty(resume.contact.location)}">
+      <span th:if="${!#strings.isEmpty(resume.contact.email)}" th:text="${resume.contact.email}">jane@example.com</span>
+      <span th:if="${!#strings.isEmpty(resume.contact.phone)}" th:text="${resume.contact.phone}">0400 000 000</span>
+      <span th:if="${!#strings.isEmpty(resume.contact.location)}" th:text="${resume.contact.location}">Brisbane</span>
+    </p>
+  </header>
+  <section th:if="${!#strings.isEmpty(resume.summary)}">
+    <h2>Professional summary</h2>
+    <p th:text="${resume.summary}">Summary</p>
+  </section>
+  <section th:if="${!#lists.isEmpty(resume.skills)}">
+    <h2>Skills</h2>
+    <ul class="skills"><li th:each="skill : ${resume.skills}" th:text="${skill}">Skill</li></ul>
+  </section>
+  <section th:if="${!#lists.isEmpty(resume.experience)}">
+    <h2>Experience</h2>
+    <article class="role" th:each="item : ${resume.experience}">
+      <div class="role-heading">
+        <strong th:text="${item.title}">Role</strong>
+        <span class="dates" th:if="${!#strings.isEmpty(item.startDate) or !#strings.isEmpty(item.endDate)}"
+              th:text="${item.startDate + (#strings.isEmpty(item.endDate) ? '' : ' – ' + item.endDate)}">Dates</span>
+      </div>
+      <p class="company" th:if="${!#strings.isEmpty(item.company)}" th:text="${item.company}">Company</p>
+      <ul th:if="${!#lists.isEmpty(item.bullets)}"><li th:each="bullet : ${item.bullets}" th:text="${bullet}">Achievement</li></ul>
+    </article>
+  </section>
+</body>
+</html>

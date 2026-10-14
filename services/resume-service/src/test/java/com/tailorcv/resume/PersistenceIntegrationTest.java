@@ -146,7 +146,50 @@ class PersistenceIntegrationTest {
         UUID id = UUID.fromString(mapper.readTree(response.getContentAsString()).get("run_id").asText());
         mvc.perform(get("/api/v1/tailor/{id}", id)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.missing_requirements[0]").value("Kubernetes"));
+        mvc.perform(get("/api/v1/tailor/{id}/preview", id))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Jane Doe")));
+        mvc.perform(get("/api/v1/tailor/{id}/pdf", id))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("attachment")))
+                .andExpect(result -> assertTrue(result.getResponse().getContentAsByteArray().length > 100));
         assertEquals(TailoringRunEntity.Status.SUCCEEDED, runs.findById(id).orElseThrow().status);
+    }
+
+    @Test void previewRejectsUnknownAndPendingRuns() throws Exception {
+        mvc.perform(get("/api/v1/tailor/{id}/preview", UUID.randomUUID()))
+                .andExpect(status().isNotFound());
+
+        var resume = new ResumeEntity();
+        resume.id = UUID.randomUUID();
+        resume.filename = "fictional.pdf";
+        resume.contentType = "application/pdf";
+        resume.originalPdf = new byte[] {1};
+        resume.rawText = "Fictional resume";
+        resume.parsedJson = mapper.valueToTree(new CanonicalResume("Jane Doe",
+                new CanonicalResume.Contact("", "", ""), "", java.util.List.of(),
+                java.util.List.of(), java.util.List.of(), java.util.List.of()));
+        resume.createdAt = OffsetDateTime.now();
+        resumes.saveAndFlush(resume);
+        var job = new JobDescriptionEntity();
+        job.id = UUID.randomUUID();
+        job.description = "Build reliable Java services for a small product team.";
+        job.createdAt = OffsetDateTime.now();
+        jobs.saveAndFlush(job);
+        var pending = new TailoringRunEntity();
+        pending.id = UUID.randomUUID();
+        pending.resume = resume;
+        pending.jobDescription = job;
+        pending.status = TailoringRunEntity.Status.PENDING;
+        pending.createdAt = OffsetDateTime.now();
+        runs.saveAndFlush(pending);
+
+        mvc.perform(get("/api/v1/tailor/{id}/preview", pending.id))
+                .andExpect(status().isConflict());
+        mvc.perform(get("/api/v1/tailor/{id}/pdf", pending.id))
+                .andExpect(status().isConflict());
     }
 
     @Test void failedTailoringPersistsFailedRun() throws Exception {
