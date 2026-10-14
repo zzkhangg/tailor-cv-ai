@@ -29,6 +29,6 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidation() {
-        return ResponseEntity.badRequest().body(Map.of("error", "Invalid job description. Provide 30 to 20000 characters."));
+        return ResponseEntity.badRequest().body(Map.of("error", "Invalid request. Check required fields and input lengths."));
     }
 }

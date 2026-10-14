@@ -33,3 +33,4 @@ ai:
   base-url: ${AI_SERVICE_URL:http://localhost:8000}
   connect-timeout-ms: ${AI_CONNECT_TIMEOUT_MS:2000}
   read-timeout-ms: ${AI_READ_TIMEOUT_MS:5000}
+  processing-read-timeout-ms: ${AI_PROCESSING_READ_TIMEOUT_MS:45000}

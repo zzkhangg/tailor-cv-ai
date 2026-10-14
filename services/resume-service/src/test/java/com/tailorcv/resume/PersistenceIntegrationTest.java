@@ -3,6 +3,8 @@ package com.tailorcv.resume;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tailorcv.resume.client.AiServiceClient;
 import com.tailorcv.resume.dto.CanonicalResume;
+import com.tailorcv.resume.dto.TailorAiResponse;
+import com.tailorcv.resume.client.AiServiceException;
 import com.tailorcv.resume.entity.JobDescriptionEntity;
 import com.tailorcv.resume.entity.ResumeEntity;
 import com.tailorcv.resume.entity.TailoringRunEntity;
@@ -27,6 +29,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -108,5 +111,68 @@ class PersistenceIntegrationTest {
         mvc.perform(post("/api/v1/jobs").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"description\":\"one word                         \"}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test void tailorPersistsResultAndExposesItByRunId() throws Exception {
+        var source = new CanonicalResume("Jane Doe", new CanonicalResume.Contact("jane@example.com", "", ""),
+                "Software engineer.", java.util.List.of("Java", "Python"), java.util.List.of(),
+                java.util.List.of(), java.util.List.of());
+        var tailored = new CanonicalResume("Jane Doe", source.contact(), source.summary(),
+                java.util.List.of("Python", "Java"), source.experience(), source.projects(), source.education());
+        var resume = new ResumeEntity();
+        resume.id = UUID.randomUUID();
+        resume.filename = "fictional.pdf";
+        resume.contentType = "application/pdf";
+        resume.originalPdf = new byte[] {1};
+        resume.rawText = "Fictional resume";
+        resume.parsedJson = mapper.valueToTree(source);
+        resume.createdAt = OffsetDateTime.now();
+        resumes.saveAndFlush(resume);
+        var job = new JobDescriptionEntity();
+        job.id = UUID.randomUUID();
+        job.description = "Build reliable Python and Java services for a team.";
+        job.createdAt = OffsetDateTime.now();
+        jobs.saveAndFlush(job);
+        when(ai.tailor(any(CanonicalResume.class), anyString())).thenReturn(
+                new TailorAiResponse(tailored, java.util.List.of("Reordered skills."),
+                        java.util.List.of("Kubernetes")));
+
+        String body = mapper.writeValueAsString(java.util.Map.of("resume_id", resume.id, "job_id", job.id));
+        var response = mvc.perform(post("/api/v1/tailor").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.tailored_resume.skills[0]").value("Python"))
+                .andReturn().getResponse();
+        UUID id = UUID.fromString(mapper.readTree(response.getContentAsString()).get("run_id").asText());
+        mvc.perform(get("/api/v1/tailor/{id}", id)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.missing_requirements[0]").value("Kubernetes"));
+        assertEquals(TailoringRunEntity.Status.SUCCEEDED, runs.findById(id).orElseThrow().status);
+    }
+
+    @Test void failedTailoringPersistsFailedRun() throws Exception {
+        var source = new CanonicalResume("Jane Doe", new CanonicalResume.Contact("", "", ""),
+                "", java.util.List.of(), java.util.List.of(), java.util.List.of(), java.util.List.of());
+        var resume = new ResumeEntity();
+        resume.id = UUID.randomUUID();
+        resume.filename = "fictional.pdf";
+        resume.contentType = "application/pdf";
+        resume.originalPdf = new byte[] {1};
+        resume.rawText = "Fictional resume";
+        resume.parsedJson = mapper.valueToTree(source);
+        resume.createdAt = OffsetDateTime.now();
+        resumes.saveAndFlush(resume);
+        var job = new JobDescriptionEntity();
+        job.id = UUID.randomUUID();
+        job.description = "Build reliable Python and Java services for a team.";
+        job.createdAt = OffsetDateTime.now();
+        jobs.saveAndFlush(job);
+        when(ai.tailor(any(CanonicalResume.class), anyString()))
+                .thenThrow(new AiServiceException(422, "AI result contained unsupported claims."));
+        String body = mapper.writeValueAsString(java.util.Map.of("resume_id", resume.id, "job_id", job.id));
+        long countBefore = runs.count();
+        mvc.perform(post("/api/v1/tailor").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isUnprocessableEntity());
+        assertEquals(countBefore + 1, runs.count());
+        assertTrue(runs.findAll().stream().anyMatch(run -> run.status == TailoringRunEntity.Status.FAILED));
     }
 }
