@@ -23,7 +23,7 @@ curl -sS -H 'Content-Type: application/json' -d '{"title":"Software Engineer","d
 curl -sS http://localhost:8080/api/v1/resumes/REPLACE_WITH_RESUME_ID
 ```
 
-The upload response contains `resume_id`, `raw_text`, and `parsed_resume`; the job response contains `job_id`. Run `docker compose restart resume-service` and repeat the `GET` to check persistence. Delete the generated sample PDF when finished. Phase 2 parsing handles clearly labelled text and leaves unrecognized fields empty; Phase 3 adds AI-based parsing.
+The upload response contains `resume_id`, `raw_text`, and `parsed_resume`; the job response contains `job_id`. Run `docker compose restart resume-service` and repeat the `GET` to check persistence. Delete the generated sample PDF when finished. Phase 2 parsing recognizes common English headings (such as Professional Summary and Technical Skills) but remains rule-based. In the UI, expand **View text extracted from PDF** after upload to check what PDFBox could read. If headings or words are missing or out of order there, the PDF layout or text layer needs attention; scanned PDFs need OCR. If the text is present but parsed fields are wrong, a sanitized sample of the extracted text can be used to improve the parser. Phase 3 adds AI-based parsing.
 
 The frontend and Java API bind to localhost. Python and PostgreSQL are reachable only on the Compose network. Java calls `http://ai-service:8000/health` during readiness; liveness remains independent. For local Java development outside Compose, set `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, and `AI_SERVICE_URL` as needed.
 

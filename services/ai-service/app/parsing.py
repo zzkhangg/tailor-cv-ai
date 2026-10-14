@@ -13,13 +13,35 @@ EXPERIENCE = re.compile(
     r"(?P<start>\d{4}-\d{2})\s*\|\s*(?P<end>\d{4}-\d{2}|Present)$",
     re.IGNORECASE,
 )
-HEADINGS = {"summary", "profile", "skills", "experience", "projects", "education"}
+SECTION_NAMES = {
+    "summary": "summary", "professional summary": "summary", "career summary": "summary",
+    "profile": "summary", "professional profile": "summary", "about me": "summary",
+    "personal statement": "summary", "objective": "summary",
+    "skills": "skills", "technical skills": "skills", "key skills": "skills",
+    "core skills": "skills", "core competencies": "skills", "skills and technologies": "skills",
+    "technologies": "skills", "tech stack": "skills",
+    "experience": "experience", "work experience": "experience",
+    "professional experience": "experience", "employment history": "experience",
+    "work history": "experience", "projects": "projects", "education": "education",
+    "certifications": "other", "awards": "other", "languages": "other",
+    "interests": "other", "references": "other", "volunteer experience": "other",
+}
+HEADING = re.compile(r"^([A-Za-z][A-Za-z &/-]{0,50}?)(?:\s*[:：-]\s*(.*))?$", re.IGNORECASE)
+
+
+def section_heading(line: str) -> tuple[str, str] | None:
+    match = HEADING.fullmatch(line.strip())
+    if not match:
+        return None
+    name = re.sub(r"\s+", " ", match.group(1)).strip().casefold()
+    section = SECTION_NAMES.get(name)
+    return (section, (match.group(2) or "").strip()) if section else None
 
 
 def parse_resume(text: str) -> CanonicalResume:
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     name = ""
-    if lines and len(lines[0]) <= 100 and "@" not in lines[0] and lines[0].rstrip(":").lower() not in HEADINGS:
+    if lines and len(lines[0]) <= 100 and "@" not in lines[0] and section_heading(lines[0]) is None:
         name = lines[0]
 
     email_match = EMAIL.search(text)
@@ -32,16 +54,12 @@ def parse_resume(text: str) -> CanonicalResume:
     section = ""
 
     for line in lines[1:] if name else lines:
-        label, separator, remainder = line.partition(":")
-        if label.lower() in HEADINGS and (separator or line.lower() in HEADINGS):
-            section = label.lower()
-            if remainder.strip():
-                line = remainder.strip()
-            else:
+        heading = section_heading(line)
+        if heading:
+            section, remainder = heading
+            if not remainder:
                 continue
-        elif line.lower() in HEADINGS:
-            section = line.lower()
-            continue
+            line = remainder
 
         if line.lower().startswith("phone:"):
             phone = line.partition(":")[2].strip()
@@ -49,10 +67,10 @@ def parse_resume(text: str) -> CanonicalResume:
         if line.lower().startswith("location:"):
             location = line.partition(":")[2].strip()
             continue
-        if section in {"summary", "profile"}:
+        if section == "summary":
             summary_lines.append(line)
         elif section == "skills":
-            skills.extend(part.strip() for part in re.split(r"[,;]", line) if part.strip())
+            skills.extend(part.strip(" \t•-–") for part in re.split(r"[,;|•]", line) if part.strip(" \t•-–"))
         elif section == "experience":
             match = EXPERIENCE.fullmatch(line)
             if match:

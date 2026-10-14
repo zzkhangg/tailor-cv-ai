@@ -22,7 +22,7 @@ test('shows a useful error when the API is unavailable', async () => {
 
 test('uploads a PDF and displays parsed resume data', async () => {
   const fetchMock = vi.fn().mockResolvedValueOnce(health).mockResolvedValueOnce({
-    ok: true, json: async () => ({ resume_id: 'resume-123', parsed_resume: {
+    ok: true, json: async () => ({ resume_id: 'resume-123', raw_text: 'Jane Doe\nSkills: Python', parsed_resume: {
       name: 'Jane Doe', contact: { email: 'jane@example.com', phone: '', location: '' },
       summary: 'Software student', skills: ['Python'], experience: [],
     } }),
@@ -36,6 +36,7 @@ test('uploads a PDF and displays parsed resume data', async () => {
   fireEvent.click(screen.getByRole('button', { name: /Upload and parse PDF/ }))
   expect(await screen.findByText('Resume saved and parsed')).toBeInTheDocument()
   expect(screen.getByText('Jane Doe')).toBeInTheDocument()
+  expect(screen.getByText('View text extracted from PDF')).toBeInTheDocument()
   expect(screen.getByText('resume-123', { exact: false })).toBeInTheDocument()
   expect(fetchMock).toHaveBeenLastCalledWith('/api/v1/resumes', expect.objectContaining({ method: 'POST', body: expect.any(FormData) }))
 })

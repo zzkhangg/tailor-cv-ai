@@ -10,7 +10,7 @@ interface ParsedResume {
   skills: string[]
   experience: { company: string; title: string; start_date: string; end_date: string; bullets: string[] }[]
 }
-interface ResumeResponse { resume_id: string; parsed_resume: ParsedResume }
+interface ResumeResponse { resume_id: string; raw_text: string; parsed_resume: ParsedResume }
 interface JobResponse { job_id: string; title: string | null }
 
 async function responseError(response: Response): Promise<string> {
@@ -120,6 +120,11 @@ export default function App() {
               <div><dt className="font-semibold">Summary</dt><dd className="whitespace-pre-wrap">{resume.parsed_resume.summary || 'Not found'}</dd></div>
               <div><dt className="font-semibold">Skills</dt><dd>{resume.parsed_resume.skills.length ? resume.parsed_resume.skills.join(', ') : 'Not found'}</dd></div>
             </dl>
+            <details className="mt-5 rounded-lg bg-slate-50 p-3 text-sm">
+              <summary className="cursor-pointer font-semibold">View text extracted from PDF</summary>
+              <p className="mt-2 text-slate-600">If a field is missing above, check whether its heading and text appear here.</p>
+              <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap break-words font-sans text-slate-800">{resume.raw_text}</pre>
+            </details>
           </div>}
         </section>
 
