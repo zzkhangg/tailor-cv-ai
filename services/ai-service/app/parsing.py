@@ -19,14 +19,25 @@ SECTION_NAMES = {
     "personal statement": "summary", "objective": "summary",
     "skills": "skills", "technical skills": "skills", "key skills": "skills",
     "core skills": "skills", "core competencies": "skills", "skills and technologies": "skills",
-    "technologies": "skills", "tech stack": "skills",
+    "technologies": "skills", "tech stack": "skills", "competencies": "skills",
     "experience": "experience", "work experience": "experience",
     "professional experience": "experience", "employment history": "experience",
     "work history": "experience", "projects": "projects", "education": "education",
-    "certifications": "other", "awards": "other", "languages": "other",
+    "certifications": "other", "certifications & awards": "other",
+    "awards": "other", "languages": "other",
     "interests": "other", "references": "other", "volunteer experience": "other",
 }
 HEADING = re.compile(r"^([A-Za-z][A-Za-z &/-]{0,50}?)(?:\s*[:：-]\s*(.*))?$", re.IGNORECASE)
+SKILL_CATEGORIES = {
+    "languages", "programming languages", "backend", "frontend", "databases",
+    "cloud & devops", "cloud and devops", "testing", "tools",
+    "professional competencies", "frameworks", "libraries",
+}
+CATEGORY = re.compile(r"^([^:：]{2,40})[:：]\s*(.+)$")
+
+
+def split_skills(line: str) -> list[str]:
+    return [part.strip(" \t•-–") for part in re.split(r"[,;|•]", line) if part.strip(" \t•-–")]
 
 
 def section_heading(line: str) -> tuple[str, str] | None:
@@ -54,6 +65,12 @@ def parse_resume(text: str) -> CanonicalResume:
     section = ""
 
     for line in lines[1:] if name else lines:
+        # Category labels inside Competencies are not top-level sections.
+        category = CATEGORY.fullmatch(line) if section == "skills" else None
+        if category and category.group(1).strip().casefold() in SKILL_CATEGORIES:
+            skills.extend(split_skills(category.group(2)))
+            continue
+
         heading = section_heading(line)
         if heading:
             section, remainder = heading
@@ -70,7 +87,10 @@ def parse_resume(text: str) -> CanonicalResume:
         if section == "summary":
             summary_lines.append(line)
         elif section == "skills":
-            skills.extend(part.strip(" \t•-–") for part in re.split(r"[,;|•]", line) if part.strip(" \t•-–"))
+            if skills and re.match(r"^(and|or)\b", line, re.IGNORECASE):
+                skills[-1] += " " + line
+            else:
+                skills.extend(split_skills(line))
         elif section == "experience":
             match = EXPERIENCE.fullmatch(line)
             if match:
