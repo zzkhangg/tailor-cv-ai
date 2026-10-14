@@ -10,10 +10,12 @@ Implemented public endpoints:
 - `POST /api/v1/jobs` accepts `{ "title": "optional", "description": "30 to 20000 characters" }` and returns `201` with `job_id`, title, description, and creation time.
 - `POST /api/v1/tailor` accepts `{ "resume_id": "UUID", "job_id": "UUID" }`. With AI configured, returns `201` with `run_id`, `SUCCEEDED`, `tailored_resume`, `change_summary`, and `missing_requirements`. An unconfigured provider returns `503`; unsupported claims return `422`.
 - `GET /api/v1/tailor/{run_id}` returns the stored run status and result; unknown IDs return `404`.
+- `GET /api/v1/tailor/{run_id}/preview` returns the completed tailored resume as escaped UTF-8 `text/html` in the fixed single-column template.
+- `GET /api/v1/tailor/{run_id}/pdf` renders that same template on demand as an `application/pdf` attachment. Exported PDFs are not persisted.
+
+The preview and PDF endpoints return `404` for an unknown run and `409` when the run is not successful or has no completed result. Rendering failures return a sanitized `500` response.
 
 Implemented internal endpoints: `GET /health` returns `200 {"status":"UP"}`; `POST /internal/parse` accepts `{ "text": "..." }` and returns canonical resume JSON; `POST /internal/tailor` accepts `{ "resume": { ...canonical resume... }, "job_description": "..." }` and returns `{ "tailored_resume": { ... }, "change_summary": [...], "missing_requirements": [...] }`. Spring Actuator also exposes `/actuator/health/liveness` and `/actuator/health/readiness`.
-
-Reserved public endpoints: `GET /api/v1/tailor/{run_id}/preview` and `GET /api/v1/tailor/{run_id}/pdf`.
 
 The default parser recognizes contact details, common summary and skills headings, categorized competencies, and experience lines in the form `Company | Title | YYYY-MM | YYYY-MM` followed by `- ` bullets. Other data is left empty rather than invented. The original PDF and extracted text are stored in PostgreSQL. The default parser does not call an LLM.
 

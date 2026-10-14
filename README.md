@@ -1,21 +1,23 @@
 # TailorCV — AI-Powered Resume Tailoring Platform
 
-## Phase 3 implementation status (14 October 2026)
+## Phase 4 implementation status (14 October 2026)
 
-The monorepo contains a React frontend, Java API, Python API, and PostgreSQL schema. Phase 2 adds backend PDF upload, conservative structured parsing, resume retrieval, and job description creation. Phase 3 adds optional AI tailoring and persisted tailoring runs. An early part of the Phase 4 UI supports PDF upload, job description entry, and a basic parsed-resume result. Tailoring is currently available through the API; full browser preview and PDF export remain future work.
+The monorepo contains a React frontend, Java API, Python API, and PostgreSQL schema. Phase 2 adds PDF upload, conservative structured parsing, resume retrieval, and job description creation. Phase 3 adds optional grounded AI tailoring and persisted tailoring runs. Phase 4 completes the two-page browser workflow, change and missing-requirement review, a server-rendered HTML preview, and on-demand PDF export using the same Thymeleaf template.
 
 ### Run locally
 
 1. Install Docker Desktop with Compose and ensure the Docker daemon is running.
 2. Copy `.env.example` to `.env` and change `POSTGRES_PASSWORD` for your local machine.
 3. Run `./start.sh` from this directory (or `bash start.sh` if it is not executable). This builds and starts the stack, then runs a Phase 2 smoke test with a fictional PDF and job description. Python 3 is required on the host for this smoke test. Each run creates one fictional resume and job in the local database and prints their IDs.
-4. Open `http://localhost:3000`. The API status should read **Available**. For a fictional UI test, run `python3 tests/fixtures/make_sample_pdf.py`, choose `sample-resume.pdf` in the **Resume PDF** field, and click **Upload and parse PDF**. The page should show Jane Doe and a resume ID. Enter a job description of at least 30 characters and click **Save job description**; the page should show a job ID. Delete the generated PDF when finished.
+4. Open `http://localhost:3000`. For a fictional UI test, run `python3 tests/fixtures/make_sample_pdf.py`, choose `sample-resume.pdf`, upload it, and save a job description of at least 30 characters. With `OPENAI_API_KEY` configured, select **Tailor my resume**. The result page shows the fixed A4 preview, a change summary, unverified requirements, and **Download PDF**. Delete the generated sample PDF when finished.
 5. Check `http://localhost:8080/api/v1/health`, `http://localhost:8080/actuator/health/liveness`, and `http://localhost:8080/actuator/health/readiness`.
 6. Run `docker compose down` to stop services. Add `-v` only if you intend to remove local database data.
 
-### Try Phase 3 tailoring
+### Try Phase 4 tailoring and export
 
 Add `OPENAI_API_KEY` to your local `.env` and run `./start.sh` again. The key is passed only to `ai-service`; it is not bundled into the frontend. Tailoring calls an external paid API and sends the selected resume and job description to it. Use fictional data for a demo. Without a key, the stack and Phase 2 work normally but tailoring returns `503`. Resume upload keeps the rule-based parser by default. To opt into AI extraction for future uploads, also set `AI_PARSE_ENABLED=true` in `.env`; this sends extracted PDF text to the same external provider and may incur charges for each upload, including the fictional upload performed by `./start.sh`. AI extraction accepts only values found verbatim in the extracted text and rejects unsupported output.
+
+For an explicit automated end-to-end check, run `RUN_PHASE4_SMOKE=true ./start.sh`. This creates fictional records, makes one paid tailoring call, verifies the HTML preview and PDF response, and prints only generated IDs. The Phase 4 smoke test is opt-in so routine startup never incurs an AI charge unexpectedly.
 
 Use the fictional `Sample resume ID` and `Sample job ID` printed by `./start.sh`:
 
@@ -24,9 +26,11 @@ curl -sS -H 'Content-Type: application/json' \
   -d '{"resume_id":"REPLACE_WITH_RESUME_ID","job_id":"REPLACE_WITH_JOB_ID"}' \
   http://localhost:8080/api/v1/tailor
 curl -sS http://localhost:8080/api/v1/tailor/REPLACE_WITH_RUN_ID
+curl -sS http://localhost:8080/api/v1/tailor/REPLACE_WITH_RUN_ID/preview
+curl -sS -o tailored-resume.pdf http://localhost:8080/api/v1/tailor/REPLACE_WITH_RUN_ID/pdf
 ```
 
-The first response includes `run_id`, `tailored_resume`, `change_summary`, and `missing_requirements`. Phase 3 only reorders or selects existing skills and experience bullets; it preserves all other fields from the original. The AI selects by index, and invalid selections or unverified missing requirements are discarded and flagged in `change_summary`. Review the output before using it. The OpenAI SDK is pinned to 3.29.0, the default configurable model is `gpt-4o-mini`, and the request uses a 30-second timeout with at most one SDK retry. Configure `OPENAI_MODEL` in `.env` to choose another compatible structured-output model.
+The first response includes `run_id`, `tailored_resume`, `change_summary`, and `missing_requirements`. Tailoring only reorders or selects existing skills and experience bullets; it preserves all other fields from the original. Invalid selections or unverified missing requirements are discarded and flagged. Preview and PDF export read the persisted result, make no additional AI call, and do not persist generated files. Review every output before using it. The OpenAI SDK is pinned to 3.29.0, the default configurable model is `gpt-4o-mini`, and the request uses a 30-second timeout with at most one SDK retry.
 
 ### Try the Phase 2 APIs
 
@@ -44,9 +48,9 @@ The frontend and Java API bind to localhost. Python and PostgreSQL are reachable
 
 ### Checks and versions
 
-Use `./start.sh` for the full stack, especially when working in WSL from `/mnt/c`: it prepares a clean Python build context so Windows-owned test caches cannot block Docker. On a native Linux checkout, `docker compose config --quiet`, `docker compose build`, and `docker compose up --build --wait` also work. In `frontend`, run `npm ci`, `npm test`, and `npm run build`. In `services/ai-service`, install `requirements-dev.lock` with Python 3.12 and run `python -m pytest`. In `services/resume-service`, run `./mvnw test` (or `mvn test`); the persistence test needs Docker for Testcontainers.
+Use `./start.sh` for the full stack, especially when working in WSL from `/mnt/c`: it prepares a clean Python build context so Windows-owned test caches cannot block Docker. Set `RUN_PHASE4_SMOKE=true` only when a configured key and one paid fictional tailoring call are intended. On a native Linux checkout, `docker compose config --quiet`, `docker compose build`, and `docker compose up --build --wait` also work. In `frontend`, run `npm ci`, `npm test`, and `npm run build`. In `services/ai-service`, install `requirements-dev.lock` with Python 3.12 and run `python -m pytest`. In `services/resume-service`, run `./mvnw test` (or `mvn test`); the persistence test needs Docker for Testcontainers.
 
-Runtime versions: Java 21, Spring Boot 3.5.6, PDFBox 3.0.8, Maven 3.9.11 in the build image, Python 3.12, FastAPI 0.116.1, Pydantic 2.11.7, Node 22, React 19.1.1, Vite 7.1.7, Tailwind CSS 4.1.13, and PostgreSQL 17. Dependency versions are pinned in the Maven POM, Python requirements, and frontend package lock. See `docs/contracts/` for shared JSON and endpoint status.
+Runtime versions: Java 21, Spring Boot 3.5.6, PDFBox 3.0.8, OpenHTMLtoPDF 1.1.97, Maven 3.9.11 in the build image, Python 3.12, FastAPI 0.116.1, Pydantic 2.11.7, Node 22, React 19.1.1, Vite 7.1.7, Tailwind CSS 4.1.13, and PostgreSQL 17. Dependency versions are pinned in the Maven POM, Python requirements, and frontend package lock. See `docs/contracts/` for shared JSON and endpoint status.
 
 > **Project specification and implementation plan** for INFS3208 Cloud Computing Individual Project (Type I). This document describes the intended application; features are **not yet implemented**.
 

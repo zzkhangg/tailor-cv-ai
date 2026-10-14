@@ -48,4 +48,8 @@ echo "TailorCV is ready."
 echo "Frontend: http://localhost:${frontend_port##*:}"
 echo "API health: http://localhost:${api_port##*:}/api/v1/health"
 PYTHONDONTWRITEBYTECODE=1 python3 tests/phase2_smoke.py --api-url "http://localhost:${api_port##*:}"
+if [[ "${RUN_PHASE4_SMOKE:-false}" == "true" ]]; then
+  echo "Running one fictional Phase 4 tailoring call through the configured AI provider."
+  PYTHONDONTWRITEBYTECODE=1 python3 tests/phase4_smoke.py --api-url "http://localhost:${api_port##*:}"
+fi
 echo "Stop services with: docker compose down"
