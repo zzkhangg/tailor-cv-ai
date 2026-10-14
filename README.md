@@ -1,8 +1,8 @@
 # TailorCV — AI-Powered Resume Tailoring Platform
 
-## Phase 2 implementation status (14 October 2026)
+## Phase 3 implementation status (14 October 2026)
 
-The monorepo contains a React frontend, Java API, Python API, and PostgreSQL schema. Phase 2 adds backend PDF upload, conservative structured parsing, resume retrieval, and job description creation. An early part of the Phase 4 UI now supports PDF upload, job description entry, and a basic parsed-resume result. Tailoring, full preview, and PDF export remain future work.
+The monorepo contains a React frontend, Java API, Python API, and PostgreSQL schema. Phase 2 adds backend PDF upload, conservative structured parsing, resume retrieval, and job description creation. Phase 3 adds optional AI tailoring and persisted tailoring runs. An early part of the Phase 4 UI supports PDF upload, job description entry, and a basic parsed-resume result. Tailoring is currently available through the API; full browser preview and PDF export remain future work.
 
 ### Run locally
 
@@ -12,6 +12,21 @@ The monorepo contains a React frontend, Java API, Python API, and PostgreSQL sch
 4. Open `http://localhost:3000`. The API status should read **Available**. For a fictional UI test, run `python3 tests/fixtures/make_sample_pdf.py`, choose `sample-resume.pdf` in the **Resume PDF** field, and click **Upload and parse PDF**. The page should show Jane Doe and a resume ID. Enter a job description of at least 30 characters and click **Save job description**; the page should show a job ID. Delete the generated PDF when finished.
 5. Check `http://localhost:8080/api/v1/health`, `http://localhost:8080/actuator/health/liveness`, and `http://localhost:8080/actuator/health/readiness`.
 6. Run `docker compose down` to stop services. Add `-v` only if you intend to remove local database data.
+
+### Try Phase 3 tailoring
+
+Add `OPENAI_API_KEY` to your local `.env` and run `./start.sh` again. The key is passed only to `ai-service`; it is not bundled into the frontend. Tailoring calls an external paid API and sends the selected resume and job description to it. Use fictional data for a demo. Without a key, the stack and Phase 2 work normally but tailoring returns `503`. Resume upload keeps the rule-based parser by default. To opt into AI extraction for future uploads, also set `AI_PARSE_ENABLED=true` in `.env`; this sends extracted PDF text to the same external provider and may incur charges for each upload, including the fictional upload performed by `./start.sh`. AI extraction accepts only values found verbatim in the extracted text and rejects unsupported output.
+
+Use the fictional `Sample resume ID` and `Sample job ID` printed by `./start.sh`:
+
+```bash
+curl -sS -H 'Content-Type: application/json' \
+  -d '{"resume_id":"REPLACE_WITH_RESUME_ID","job_id":"REPLACE_WITH_JOB_ID"}' \
+  http://localhost:8080/api/v1/tailor
+curl -sS http://localhost:8080/api/v1/tailor/REPLACE_WITH_RUN_ID
+```
+
+The first response includes `run_id`, `tailored_resume`, `change_summary`, and `missing_requirements`. Phase 3 only reorders or selects existing skills and experience bullets; it preserves all other fields from the original. Review the output before using it. The OpenAI SDK is pinned to 3.29.0, the default configurable model is `gpt-4o-mini`, and the request uses a 30-second timeout with at most one SDK retry. Configure `OPENAI_MODEL` in `.env` to choose another compatible structured-output model.
 
 ### Try the Phase 2 APIs
 
@@ -23,7 +38,7 @@ curl -sS -H 'Content-Type: application/json' -d '{"title":"Software Engineer","d
 curl -sS http://localhost:8080/api/v1/resumes/REPLACE_WITH_RESUME_ID
 ```
 
-The upload response contains `resume_id`, `raw_text`, and `parsed_resume`; the job response contains `job_id`. Run `docker compose restart resume-service` and repeat the `GET` to check persistence. Delete the generated sample PDF when finished. Phase 2 parsing recognizes common English headings (such as Professional Summary, Technical Skills, and Competencies with labelled categories) but remains rule-based. In the UI, expand **View text extracted from PDF** after upload to check what PDFBox could read. If headings or words are missing or out of order there, the PDF layout or text layer needs attention; scanned PDFs need OCR. If the text is present but parsed fields are wrong, a sanitized sample of the extracted text can be used to improve the parser. Phase 3 adds AI-based parsing.
+The upload response contains `resume_id`, `raw_text`, and `parsed_resume`; the job response contains `job_id`. Run `docker compose restart resume-service` and repeat the `GET` to check persistence. Delete the generated sample PDF when finished. The default parser recognizes common English headings (such as Professional Summary, Technical Skills, and Competencies with labelled categories) but remains rule-based. In the UI, expand **View text extracted from PDF** after upload to check what PDFBox could read. If headings or words are missing or out of order there, the PDF layout or text layer needs attention; scanned PDFs need OCR. If the text is present but parsed fields are wrong, a sanitized sample of the extracted text can be used to improve the parser. Optional AI extraction is available as described above.
 
 The frontend and Java API bind to localhost. Python and PostgreSQL are reachable only on the Compose network. Java calls `http://ai-service:8000/health` during readiness; liveness remains independent. For local Java development outside Compose, set `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, and `AI_SERVICE_URL` as needed.
 
