@@ -22,7 +22,16 @@
       "bullets": ["Built a fictional API using FastAPI."]
     }
   ],
-  "education": [],
+  "education": [
+    {
+      "institution": "Example University",
+      "location": "Brisbane",
+      "degree": "Bachelor of Software Engineering",
+      "start_date": "2023-02",
+      "end_date": "2026-12",
+      "details": ["Fictional academic scholarship recipient."]
+    }
+  ],
   "certifications": [
     {"name": "Example Cloud Certificate", "date": "2025-07"}
   ]

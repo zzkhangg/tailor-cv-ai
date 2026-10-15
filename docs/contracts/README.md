@@ -1,6 +1,6 @@
 # Implemented service contracts
 
-JSON fields use `snake_case`. `canonical-resume.json` is fictional test data and is the shared fixture for Java and Python validation. Projects use `name`, `description`, `technologies`, `start_date`, `end_date`, and `bullets`; certifications use `name` and `date`. Education remains an untyped empty collection until its parser is implemented.
+JSON fields use `snake_case`. `canonical-resume.json` is fictional test data and is the shared fixture for Java and Python validation. Projects use `name`, `description`, `technologies`, `start_date`, `end_date`, and `bullets`; education uses `institution`, `location`, `degree`, `start_date`, `end_date`, and `details`; certifications use `name` and `date`.
 
 Implemented public endpoints:
 
@@ -17,7 +17,7 @@ The preview and PDF endpoints return `404` for an unknown run and `409` when the
 
 Implemented internal endpoints: `GET /health` returns `200 {"status":"UP"}`; `POST /internal/parse` accepts `{ "text": "..." }` and returns canonical resume JSON; `POST /internal/tailor` accepts `{ "resume": { ...canonical resume... }, "job_description": "..." }` and returns `{ "tailored_resume": { ... }, "change_summary": [...], "missing_requirements": [...] }`. Spring Actuator also exposes `/actuator/health/liveness` and `/actuator/health/readiness`.
 
-The default parser recognizes contact details, common summary and skills headings, categorized competencies, and both pipe-delimited and multiline experience entries. Multiline entries may put `Title Month YYYY – Month YYYY` above the company. It joins wrapped bullets and parses dated projects with a following comma-separated technology line, plus dated certification/award lines. Unknown layouts are left empty rather than invented. The original PDF and extracted text are stored in PostgreSQL. The default parser does not call an LLM.
+The default parser recognizes contact details, common summary and skills headings, categorized competencies, and both pipe-delimited and multiline experience entries. Multiline entries may put `Title Month YYYY – Month YYYY` above the company. It joins wrapped bullets and parses dated projects with a following comma-separated technology line, education entries with a dated degree line, and dated certification/award lines. Education locations are split only when the institution line contains a clear `|`, `—`, or `–` delimiter. Unknown layouts are preserved conservatively or left empty rather than invented. The original PDF and extracted text are stored in PostgreSQL. The default parser does not call an LLM.
 
 Public health is a fast process check. Readiness depends on PostgreSQL and the Python health endpoint. Java maps an unavailable Python service to a safe `503`, invalid downstream response to `502`, and timeout to `504` when its client is used. No resume text, prompt, or credential is included in these errors.
 

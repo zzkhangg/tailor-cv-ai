@@ -28,7 +28,7 @@ def test_ai_parse_accepts_exact_source_facts(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "fictional-test-key")
     output = ParseModelOutput(name="Jane Doe", contact={"email": "jane@example.com", "phone": "", "location": ""},
                               summary="Software engineering student.", skills=["Python", "FastAPI"], experience=[],
-                              projects=[], certifications=[])
+                              projects=[], education=[], certifications=[])
     monkeypatch.setattr("app.ai_parsing.OpenAI", lambda **kwargs: SimpleNamespace(
         responses=SimpleNamespace(parse=lambda **kwargs: SimpleNamespace(output_parsed=output))))
     response = TestClient(app).post("/internal/parse", json={"text": TEXT})
@@ -42,7 +42,7 @@ def test_ai_parse_rejects_invented_skill(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "fictional-test-key")
     output = ParseModelOutput(name="Jane Doe", contact={"email": "jane@example.com", "phone": "", "location": ""},
                               summary="Software engineering student.", skills=["Kubernetes"], experience=[],
-                              projects=[], certifications=[])
+                              projects=[], education=[], certifications=[])
     monkeypatch.setattr("app.ai_parsing.OpenAI", lambda **kwargs: SimpleNamespace(
         responses=SimpleNamespace(parse=lambda **kwargs: SimpleNamespace(output_parsed=output))))
     response = TestClient(app).post("/internal/parse", json={"text": TEXT})

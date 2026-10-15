@@ -9,7 +9,7 @@ interface CanonicalResume {
   skills: string[]
   experience: { company: string; title: string; start_date: string; end_date: string; bullets: string[] }[]
   projects: { name: string; description: string; technologies: string[]; start_date: string; end_date: string; bullets: string[] }[]
-  education: Record<string, unknown>[]
+  education: { institution: string; location: string; degree: string; start_date: string; end_date: string; details: string[] }[]
   certifications?: { name: string; date: string }[]
 }
 interface ResumeResponse { resume_id: string; raw_text: string; parsed_resume: CanonicalResume }

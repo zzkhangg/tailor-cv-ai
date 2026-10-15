@@ -5,7 +5,7 @@ AI-based parsing is a later phase. This parser copies only text present in the P
 
 import re
 
-from app.schemas import CanonicalResume, Certification, Contact, Experience, Project
+from app.schemas import CanonicalResume, Certification, Contact, Education, Experience, Project
 
 EMAIL = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.IGNORECASE)
 EXPERIENCE = re.compile(
@@ -15,8 +15,9 @@ EXPERIENCE = re.compile(
 )
 MONTH = r"(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?"
 DATE = rf"(?:{MONTH}\s+\d{{4}}|\d{{4}}-\d{{2}})"
+END_DATE = rf"(?:{DATE}(?:\s+\(Expected\))?|Present)"
 DATED_ENTRY = re.compile(
-    rf"^(?P<label>.+?)\s+(?P<start>{DATE})\s*[–—-]\s*(?P<end>{DATE}|Present)$",
+    rf"^(?P<label>.+?)\s+(?P<start>{DATE})\s*[–—-]\s*(?P<end>{END_DATE})$",
     re.IGNORECASE,
 )
 DATED_CERTIFICATION = re.compile(
@@ -60,6 +61,11 @@ def append_wrapped(items: list[str], line: str) -> None:
         items[-1] = f"{items[-1]} {line}".strip()
 
 
+def institution_and_location(line: str) -> tuple[str, str]:
+    parts = re.split(r"\s+(?:\||—|–)\s+", line, maxsplit=1)
+    return (parts[0].strip(), parts[1].strip()) if len(parts) == 2 else (line, "")
+
+
 def section_heading(line: str) -> tuple[str, str] | None:
     match = HEADING.fullmatch(line.strip())
     if not match:
@@ -83,12 +89,15 @@ def parse_resume(text: str) -> CanonicalResume:
     skills: list[str] = []
     experiences: list[Experience] = []
     projects: list[Project] = []
+    education: list[Education] = []
     certifications: list[Certification] = []
     section = ""
     experience_needs_company = False
     project_needs_technologies = False
 
-    for line in lines[1:] if name else lines:
+    content_lines = lines[1:] if name else lines
+    for index, line in enumerate(content_lines):
+        next_line = content_lines[index + 1] if index + 1 < len(content_lines) else ""
         # Category labels inside Competencies are not top-level sections.
         category = CATEGORY.fullmatch(line) if section == "skills" else None
         if category and category.group(1).strip().casefold() in SKILL_CATEGORIES:
@@ -173,6 +182,25 @@ def parse_resume(text: str) -> CanonicalResume:
                 certifications.append(Certification(name=dated.group("name").strip(), date=dated.group("date")))
             else:
                 certifications.append(Certification(name=line, date=""))
+        elif section == "education":
+            dated = DATED_ENTRY.fullmatch(line)
+            if dated:
+                institution = ""
+                location = ""
+                if index > 0:
+                    previous = content_lines[index - 1]
+                    previous_heading = section_heading(previous)
+                    if not previous_heading:
+                        institution, location = institution_and_location(previous)
+                education.append(Education(
+                    institution=institution, location=location,
+                    degree=dated.group("label").strip(), start_date=dated.group("start"),
+                    end_date=dated.group("end"), details=[],
+                ))
+            elif DATED_ENTRY.fullmatch(next_line):
+                continue
+            elif education:
+                education[-1].details.append(line)
 
     return CanonicalResume(
         name=name,
@@ -181,6 +209,6 @@ def parse_resume(text: str) -> CanonicalResume:
         skills=list(dict.fromkeys(skills)),
         experience=experiences,
         projects=projects,
-        education=[],
+        education=education,
         certifications=certifications,
     )

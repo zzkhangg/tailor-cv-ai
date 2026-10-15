@@ -33,6 +33,15 @@ class Certification(StrictModel):
     date: str
 
 
+class Education(StrictModel):
+    institution: str
+    location: str
+    degree: str
+    start_date: str
+    end_date: str
+    details: list[str]
+
+
 class CanonicalResume(StrictModel):
     name: str
     contact: Contact
@@ -40,7 +49,7 @@ class CanonicalResume(StrictModel):
     skills: list[str]
     experience: list[Experience]
     projects: list[Project]
-    education: list[dict]
+    education: list[Education]
     certifications: list[Certification] = Field(default_factory=list)
 
 
@@ -59,6 +68,7 @@ class ParseModelOutput(StrictModel):
     skills: list[str]
     experience: list[Experience]
     projects: list[Project]
+    education: list[Education]
     certifications: list[Certification]
 
 

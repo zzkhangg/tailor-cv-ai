@@ -102,6 +102,13 @@ def test_parse_multiline_experience_projects_and_certifications():
         "Sample Worker — Distributed Backend System Mar. 2026 – Apr. 2026\n"
         "FastAPI, Celery, PostgreSQL\n"
         "• Built an asynchronous image-analysis backend.\n"
+        "Education\n"
+        "Example University | Brisbane, QLD\n"
+        "Bachelor of Engineering (Honours) Feb. 2025 – Dec. 2026 (Expected)\n"
+        "CGPA: 6.5/7.0\n"
+        "Sample Institute\n"
+        "Bachelor of Computer Science Oct. 2022 – Feb. 2025\n"
+        "Academic Scholarship\n"
         "Certifications & Awards\n"
         "Example English Certificate — July 2026\n"
         "Silver Medal in Physics — April 2021\n"
@@ -120,6 +127,18 @@ def test_parse_multiline_experience_projects_and_certifications():
     assert data["projects"][0]["technologies"] == ["FastAPI", "React", "TypeScript", "Docker"]
     assert data["projects"][0]["bullets"][0].endswith("authentication and notifications.")
     assert data["projects"][1]["name"] == "Sample Worker"
+    assert data["education"] == [
+        {
+            "institution": "Example University", "location": "Brisbane, QLD",
+            "degree": "Bachelor of Engineering (Honours)",
+            "start_date": "Feb. 2025", "end_date": "Dec. 2026 (Expected)", "details": ["CGPA: 6.5/7.0"],
+        },
+        {
+            "institution": "Sample Institute", "location": "",
+            "degree": "Bachelor of Computer Science",
+            "start_date": "Oct. 2022", "end_date": "Feb. 2025", "details": ["Academic Scholarship"],
+        },
+    ]
     assert data["certifications"] == [
         {"name": "Example English Certificate", "date": "July 2026"},
         {"name": "Silver Medal in Physics", "date": "April 2021"},

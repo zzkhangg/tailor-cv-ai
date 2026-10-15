@@ -46,7 +46,10 @@ class ResumeRenderingServiceTest {
                         List.of("Developed REST APIs."))),
                 List.of(new CanonicalResume.Project("Sample Service", "University Project",
                         List.of("Python", "FastAPI"), "2025-04", "2025-06",
-                        List.of("Built a fictional API."))), List.of(),
+                        List.of("Built a fictional API."))),
+                List.of(new CanonicalResume.Education("Example University", "Brisbane",
+                        "Bachelor of Software Engineering", "2023-02", "2026-12",
+                        List.of("Fictional scholarship recipient."))),
                 List.of(new CanonicalResume.Certification("Example Cloud Certificate", "2025-07")));
         var run = new TailoringRunEntity();
         run.id = id;
@@ -60,6 +63,7 @@ class ResumeRenderingServiceTest {
         assertTrue(html.contains("Developed REST APIs."));
         assertTrue(html.contains("Sample Service"));
         assertTrue(html.contains("Example Cloud Certificate"));
+        assertTrue(html.contains("Bachelor of Software Engineering"));
 
         byte[] pdf = rendering.renderPdf(id);
         assertArrayEquals("%PDF".getBytes(), java.util.Arrays.copyOf(pdf, 4));
@@ -69,6 +73,7 @@ class ResumeRenderingServiceTest {
             assertTrue(text.contains("Software Intern"));
             assertTrue(text.contains("Sample Service"));
             assertTrue(text.contains("Example Cloud Certificate"));
+            assertTrue(text.contains("Bachelor of Software Engineering"));
         }
     }
 

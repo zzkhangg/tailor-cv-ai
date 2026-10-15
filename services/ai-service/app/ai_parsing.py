@@ -33,9 +33,12 @@ def verify_extraction(text: str, output: ParseModelOutput) -> CanonicalResume:
                        *item.technologies, *item.bullets])
     for item in output.certifications:
         values.extend([item.name, item.date])
+    for item in output.education:
+        values.extend([item.institution, item.location, item.degree,
+                       item.start_date, item.end_date, *item.details])
     if any(_normalized(value) not in source for value in values if value):
         raise ValueError("AI extraction included text absent from the source")
-    return CanonicalResume(**output.model_dump(), education=[])
+    return CanonicalResume(**output.model_dump())
 
 
 def parse_with_ai_or_rules(text: str) -> CanonicalResume:

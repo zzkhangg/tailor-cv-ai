@@ -70,6 +70,18 @@
       <ul th:if="${!#lists.isEmpty(project.bullets)}"><li th:each="bullet : ${project.bullets}" th:text="${bullet}">Achievement</li></ul>
     </article>
   </section>
+  <section th:if="${!#lists.isEmpty(resume.education)}">
+    <h2>Education</h2>
+    <article class="role" th:each="item : ${resume.education}">
+      <div class="role-heading">
+        <strong th:text="${item.degree}">Degree</strong>
+        <span class="dates" th:if="${!#strings.isEmpty(item.startDate) or !#strings.isEmpty(item.endDate)}"
+              th:text="${item.startDate + (#strings.isEmpty(item.endDate) ? '' : ' – ' + item.endDate)}">Dates</span>
+      </div>
+      <p class="company" th:text="${item.institution + (#strings.isEmpty(item.location) ? '' : ' — ' + item.location)}">Institution</p>
+      <ul th:if="${!#lists.isEmpty(item.details)}"><li th:each="detail : ${item.details}" th:text="${detail}">Detail</li></ul>
+    </article>
+  </section>
   <section th:if="${!#lists.isEmpty(resume.certifications)}">
     <h2>Certifications &amp; awards</h2>
     <article class="role" th:each="certification : ${resume.certifications}">
