@@ -58,5 +58,26 @@
       <ul th:if="${!#lists.isEmpty(item.bullets)}"><li th:each="bullet : ${item.bullets}" th:text="${bullet}">Achievement</li></ul>
     </article>
   </section>
+  <section th:if="${!#lists.isEmpty(resume.projects)}">
+    <h2>Projects</h2>
+    <article class="role" th:each="project : ${resume.projects}">
+      <div class="role-heading">
+        <strong th:text="${project.name + (#strings.isEmpty(project.description) ? '' : ' — ' + project.description)}">Project</strong>
+        <span class="dates" th:if="${!#strings.isEmpty(project.startDate) or !#strings.isEmpty(project.endDate)}"
+              th:text="${project.startDate + (#strings.isEmpty(project.endDate) ? '' : ' – ' + project.endDate)}">Dates</span>
+      </div>
+      <p class="company" th:if="${!#lists.isEmpty(project.technologies)}" th:text="${#strings.listJoin(project.technologies, ', ')}">Technologies</p>
+      <ul th:if="${!#lists.isEmpty(project.bullets)}"><li th:each="bullet : ${project.bullets}" th:text="${bullet}">Achievement</li></ul>
+    </article>
+  </section>
+  <section th:if="${!#lists.isEmpty(resume.certifications)}">
+    <h2>Certifications &amp; awards</h2>
+    <article class="role" th:each="certification : ${resume.certifications}">
+      <div class="role-heading">
+        <strong th:text="${certification.name}">Certification</strong>
+        <span class="dates" th:if="${!#strings.isEmpty(certification.date)}" th:text="${certification.date}">Date</span>
+      </div>
+    </article>
+  </section>
 </body>
 </html>

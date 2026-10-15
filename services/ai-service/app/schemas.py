@@ -19,14 +19,29 @@ class Experience(StrictModel):
     bullets: list[str]
 
 
+class Project(StrictModel):
+    name: str
+    description: str
+    technologies: list[str]
+    start_date: str
+    end_date: str
+    bullets: list[str]
+
+
+class Certification(StrictModel):
+    name: str
+    date: str
+
+
 class CanonicalResume(StrictModel):
     name: str
     contact: Contact
     summary: str
     skills: list[str]
     experience: list[Experience]
-    projects: list[dict]
+    projects: list[Project]
     education: list[dict]
+    certifications: list[Certification] = Field(default_factory=list)
 
 
 class HealthResponse(StrictModel):
@@ -43,6 +58,8 @@ class ParseModelOutput(StrictModel):
     summary: str
     skills: list[str]
     experience: list[Experience]
+    projects: list[Project]
+    certifications: list[Certification]
 
 
 class TailorRequest(StrictModel):

@@ -12,6 +12,18 @@
       "bullets": ["Developed REST APIs using Python."]
     }
   ],
-  "projects": [],
-  "education": []
+  "projects": [
+    {
+      "name": "Sample Service",
+      "description": "University Project",
+      "technologies": ["Python", "FastAPI"],
+      "start_date": "2025-04",
+      "end_date": "2025-06",
+      "bullets": ["Built a fictional API using FastAPI."]
+    }
+  ],
+  "education": [],
+  "certifications": [
+    {"name": "Example Cloud Certificate", "date": "2025-07"}
+  ]
 }

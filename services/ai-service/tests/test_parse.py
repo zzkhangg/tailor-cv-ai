@@ -80,3 +80,47 @@ def test_parse_competencies_with_categories_and_wrapped_text():
         "PostgreSQL", "Redis", "Docker", "AWS", "API design",
         "database and transactional reasoning",
     ]
+
+
+def test_parse_multiline_experience_projects_and_certifications():
+    text = (
+        "Taylor Example\n"
+        "Professional Experience\n"
+        "Backend Developer Intern Nov. 2025 – Jan. 2026\n"
+        "Example Commercial Bank\n"
+        "Introductory description that is not a responsibility bullet.\n"
+        "Key Responsibilities\n"
+        "• Designed REST APIs for accounts, transfers and transaction history, separating request handling\n"
+        "and persistence logic.\n"
+        "Key Achievements\n"
+        "• Wrote unit tests covering transfer validation and ledger entries.\n"
+        "Projects\n"
+        "SquadGoals — Team Capstone Project May 2026 – Jun. 2026\n"
+        "FastAPI, React, TypeScript, Docker\n"
+        "• Collaborated in a six-person team on a fictional habit-tracking platform, contributing\n"
+        "authentication and notifications.\n"
+        "Sample Worker — Distributed Backend System Mar. 2026 – Apr. 2026\n"
+        "FastAPI, Celery, PostgreSQL\n"
+        "• Built an asynchronous image-analysis backend.\n"
+        "Certifications & Awards\n"
+        "Example English Certificate — July 2026\n"
+        "Silver Medal in Physics — April 2021\n"
+    )
+    data = TestClient(app).post("/internal/parse", json={"text": text}).json()
+    assert data["experience"] == [{
+        "company": "Example Commercial Bank", "title": "Backend Developer Intern",
+        "start_date": "Nov. 2025", "end_date": "Jan. 2026",
+        "bullets": [
+            "Designed REST APIs for accounts, transfers and transaction history, separating request handling and persistence logic.",
+            "Wrote unit tests covering transfer validation and ledger entries.",
+        ],
+    }]
+    assert data["projects"][0]["name"] == "SquadGoals"
+    assert data["projects"][0]["description"] == "Team Capstone Project"
+    assert data["projects"][0]["technologies"] == ["FastAPI", "React", "TypeScript", "Docker"]
+    assert data["projects"][0]["bullets"][0].endswith("authentication and notifications.")
+    assert data["projects"][1]["name"] == "Sample Worker"
+    assert data["certifications"] == [
+        {"name": "Example English Certificate", "date": "July 2026"},
+        {"name": "Silver Medal in Physics", "date": "April 2021"},
+    ]

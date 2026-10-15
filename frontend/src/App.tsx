@@ -8,8 +8,9 @@ interface CanonicalResume {
   summary: string
   skills: string[]
   experience: { company: string; title: string; start_date: string; end_date: string; bullets: string[] }[]
-  projects: Record<string, unknown>[]
+  projects: { name: string; description: string; technologies: string[]; start_date: string; end_date: string; bullets: string[] }[]
   education: Record<string, unknown>[]
+  certifications?: { name: string; date: string }[]
 }
 interface ResumeResponse { resume_id: string; raw_text: string; parsed_resume: CanonicalResume }
 interface JobResponse { job_id: string; title: string | null }

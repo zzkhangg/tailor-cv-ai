@@ -43,7 +43,11 @@ class ResumeRenderingServiceTest {
                 new CanonicalResume.Contact("jane@example.com", "", "Brisbane"),
                 "Builds reliable services.", List.of("Python", "Java"),
                 List.of(new CanonicalResume.Experience("Example Co", "Software Intern", "2025-01", "2025-03",
-                        List.of("Developed REST APIs."))), List.of(), List.of());
+                        List.of("Developed REST APIs."))),
+                List.of(new CanonicalResume.Project("Sample Service", "University Project",
+                        List.of("Python", "FastAPI"), "2025-04", "2025-06",
+                        List.of("Built a fictional API."))), List.of(),
+                List.of(new CanonicalResume.Certification("Example Cloud Certificate", "2025-07")));
         var run = new TailoringRunEntity();
         run.id = id;
         run.status = TailoringRunEntity.Status.SUCCEEDED;
@@ -54,6 +58,8 @@ class ResumeRenderingServiceTest {
         assertTrue(html.contains("Jane &lt;Doe&gt;"));
         assertFalse(html.contains("Jane <Doe>"));
         assertTrue(html.contains("Developed REST APIs."));
+        assertTrue(html.contains("Sample Service"));
+        assertTrue(html.contains("Example Cloud Certificate"));
 
         byte[] pdf = rendering.renderPdf(id);
         assertArrayEquals("%PDF".getBytes(), java.util.Arrays.copyOf(pdf, 4));
@@ -61,6 +67,8 @@ class ResumeRenderingServiceTest {
             String text = new PDFTextStripper().getText(document);
             assertTrue(text.contains("Jane <Doe>"));
             assertTrue(text.contains("Software Intern"));
+            assertTrue(text.contains("Sample Service"));
+            assertTrue(text.contains("Example Cloud Certificate"));
         }
     }
 
