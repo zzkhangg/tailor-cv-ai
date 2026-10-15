@@ -38,23 +38,26 @@ docker compose down
 
 Run the frontend tests/build, Python pytest suite, and Maven tests using the commands in the top-level README. Do not run the paid smoke workflow without an intentionally configured key.
 
-## Planned Kubernetes evidence
+## Kubernetes evidence (scripts implemented; cloud run pending)
 
-These commands are examples until the Phase 6 manifests and actual resource names exist. Add comments to the submitted/demo command sheet and never delete resources outside the demo namespace.
+Run these commands only after following `infra/k8s/README.md`. Add comments to the submitted/demo command sheet and never delete resources outside the demo namespace.
 
 ```bash
-# Display desired/ready replicas and service endpoints in the TailorCV namespace.
-kubectl get deployments,pods,services -n tailorcv
+# Display nodes, desired/ready replicas, Services, public IP, and images.
+./scripts/gke/demo.sh status
 
-# Increase Java API capacity from two to three Pods without stopping the Service.
-kubectl scale deployment/resume-service --replicas=3 -n tailorcv
+# Display the multiple Pod IPs behind each stateless Service.
+./scripts/gke/demo.sh endpoints
 
-# Observe rollout completion after applying a tested, immutable image tag.
-kubectl rollout status deployment/resume-service -n tailorcv
+# Increase Java API capacity from two to three ready Pods.
+./scripts/gke/demo.sh scale 3
 
-# Display revision history, then return to the previous working revision.
-kubectl rollout history deployment/resume-service -n tailorcv
-kubectl rollout undo deployment/resume-service -n tailorcv
+# Delete one Java Pod and wait for its replacement.
+./scripts/gke/demo.sh self-heal
+
+# Roll to a previously built immutable image tag, then restore the prior image.
+./scripts/gke/demo.sh release REPLACE_WITH_SECOND_TAG
+./scripts/gke/demo.sh rollback
 ```
 
-Also record requests succeeding while multiple Pods serve traffic and while one selected backend Pod is deleted and replaced. Run k6 only against a non-LLM endpoint. Do not claim these criteria are complete until the commands have been executed successfully in the cloud.
+Record health requests succeeding during scale, Pod replacement, rollout, and rollback. Run k6 only against a non-LLM endpoint. Do not claim these criteria are complete until the commands have been executed successfully in the cloud.

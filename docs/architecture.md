@@ -26,18 +26,18 @@ Docker Compose runs the frontend, `resume-service`, `ai-service`, and PostgreSQL
 
 PostgreSQL is owned only by `resume-service`; `ai-service` is stateless. Java liveness checks only its process. Readiness also checks PostgreSQL and Python. Provider failures and timeouts are mapped to sanitized public errors.
 
-## Planned cloud architecture (Phase 6)
+## Implemented deployment definition (Phase 6, cloud verification pending)
 
 ```mermaid
 flowchart LR
-    U[Browser] --> LB[Google Cloud Load Balancer<br/>Ingress]
-    LB --> F[frontend Service<br/>2+ Pods]
+    U[Browser] --> LB[External LoadBalancer Service<br/>HTTP :80]
+    LB --> F[frontend Pods<br/>Nginx + React, 2 replicas]
     F --> R[resume-service Service<br/>2+ Pods]
     R --> P[(PostgreSQL<br/>PVC-backed Pod)]
     R --> A[ai-service Service<br/>2+ Pods]
     A --> O[OpenAI API]
 ```
 
-The intended GKE deployment uses separate Deployments and ClusterIP Services for the frontend and both application services, with at least two backend replicas, readiness/liveness probes, resource requests/limits, ConfigMaps, and Kubernetes Secrets. An Ingress or LoadBalancer provides the public entry point. PostgreSQL uses a persistent disk through a PVC.
+The GKE manifests use separate Deployments and Services for the frontend and both application services, with two replicas, readiness/liveness probes, resource requests/limits, a ConfigMap, and a runtime-created Kubernetes Secret. A frontend `LoadBalancer` Service provides the only public entry point. PostgreSQL uses a 10 Gi `standard-rwo` persistent disk through a StatefulSet volume claim.
 
-This cloud design is **planned, not yet implemented or verified**. A single PostgreSQL Pod remains a single point of failure; the application must not be described as end-to-end highly available until a replicated or managed database is used. Cloud completion requires recorded evidence of scaling, load balancing, Pod replacement, rolling update, and rollback.
+The manifests and guarded GKE scripts are implemented but have **not yet been run or verified in Google Cloud**. A single PostgreSQL Pod remains a single point of failure; the application must not be described as end-to-end highly available until a replicated or managed database is used. Cloud completion requires recorded evidence of the public workflow, scaling, Service endpoints, Pod replacement, rolling update, rollback, and teardown.

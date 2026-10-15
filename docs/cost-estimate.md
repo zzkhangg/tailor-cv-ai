@@ -5,7 +5,7 @@ This is a planning estimate for a small classroom GKE demonstration, not a bill 
 ## Assumptions
 
 - Region: `australia-southeast1` (Sydney), to be confirmed.
-- GKE Standard cluster with two small worker nodes for multi-node orchestration evidence.
+- GKE Standard zonal cluster in `australia-southeast1-a` with two `e2-standard-2` worker nodes for multi-host orchestration evidence.
 - Approximately 730 running hours per month. For the course demo, the cluster will run only when needed.
 - Two replicas each for the frontend, `resume-service`, and `ai-service` during demonstrations.
 - One PVC-backed PostgreSQL Pod; this is economical but not highly available.
@@ -25,7 +25,9 @@ This is a planning estimate for a small classroom GKE demonstration, not a bill 
 | OpenAI API | Demo-scale `gpt-4o-mini` input/output | Less than $1 |
 | **Estimated total** | Before tax; depends primarily on nodes and GKE fee | **$141–294/month** |
 
-The range is intentionally conservative because the exact node type, cluster mode, free-tier eligibility, and load-balancer usage have not been finalized. The final proposal must state one configuration and one calculated total rather than presenting this range.
+The range is intentionally conservative because free-tier eligibility, regional VM pricing, and observed load-balancer usage have not been confirmed in the target billing account. The final proposal must state one Calculator configuration and one calculated total rather than presenting this range.
+
+The manifests and scripts now select the topology above and a public frontend `LoadBalancer` Service, but they have not been executed in GCP. Replace the provisional compute and networking figures with a dated Calculator result and observed resources after the first verified deployment.
 
 ## Cost controls
 
