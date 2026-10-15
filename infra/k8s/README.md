@@ -1,1 +1,1 @@
-Kubernetes manifests are reserved for Phase 6. Phase 1 runs only in Docker Compose.
+Kubernetes manifests are implemented for Phase 6. Deployment instructions will be added with the GKE automation scripts.

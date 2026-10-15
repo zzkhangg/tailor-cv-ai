@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tailorcv-config
+  labels:
+    app.kubernetes.io/part-of: tailorcv
+data:
+  POSTGRES_DB: tailorcv
+  POSTGRES_USER: tailorcv
+  OPENAI_MODEL: gpt-4o-mini
+  AI_PARSE_ENABLED: "false"
+  AI_CONNECT_TIMEOUT_MS: "2000"
+  AI_READ_TIMEOUT_MS: "5000"
+  AI_PROCESSING_READ_TIMEOUT_MS: "45000"

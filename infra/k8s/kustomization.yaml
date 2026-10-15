@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: tailorcv
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - postgres.yaml
+  - ai-service.yaml
+  - resume-service.yaml
+  - frontend.yaml
+  - pdb.yaml
+images:
+  - name: tailorcv/frontend
+    newName: tailorcv/frontend
+    newTag: dev
+  - name: tailorcv/resume-service
+    newName: tailorcv/resume-service
+    newTag: dev
+  - name: tailorcv/ai-service
+    newName: tailorcv/ai-service
+    newTag: dev
