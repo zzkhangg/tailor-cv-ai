@@ -137,15 +137,23 @@ Every command below is scoped to the `tailorcv` namespace where applicable.
 For rolling update evidence, build a second tested immutable tag, deploy it only to Java, then roll back:
 
 ```bash
+# Before release, the v1 Java image does not have this endpoint (HTTP 404).
+curl -i "http://$EXTERNAL_IP/api/v1/version"
+
+# Commit and pull the Java v2 change before building its image.
 export RELEASE_TAG="demo-v2-$(git rev-parse --short=12 HEAD)"
 IMAGE_TAG="$RELEASE_TAG" ./scripts/gke/build-images.sh
 
 # Update the Java Deployment with maxUnavailable=0 and show revision history.
 ./scripts/gke/demo.sh release "$RELEASE_TAG"
+curl --fail "http://$EXTERNAL_IP/api/v1/version"
 
 # Restore the previous image and print the image before/after rollback.
 ./scripts/gke/demo.sh rollback
+curl -i "http://$EXTERNAL_IP/api/v1/version"
 ```
+
+The v2 request should return `{"version":"demo-v2"}`; after rollback, v1 should return HTTP 404 again. Wait for each rollout to complete before comparing responses, because old and new Java Pods coexist briefly during an update. The release command changes only the Java Deployment; do not run `deploy.sh` between `release` and `rollback`, as it reapplies the manifest's image tag.
 
 While scaling or deleting a Pod, repeatedly request `http://$EXTERNAL_IP/api/v1/health` to demonstrate continued availability. Capture the commands, their comments, timestamps, ready replica counts, node placement, image tags, and successful responses. A single PostgreSQL Pod remains a documented single point of failure.
 

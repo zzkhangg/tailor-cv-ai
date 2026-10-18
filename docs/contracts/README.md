@@ -5,6 +5,7 @@ JSON fields use `snake_case`. `canonical-resume.json` is fictional test data and
 Implemented public endpoints:
 
 - `GET /api/v1/health` returns `200 {"status":"UP"}`.
+- `GET /api/v1/version` returns `200 {"version":"demo-v2"}` in the Java v2 image. The original v1 image does not have this endpoint; it is a visible marker for the rolling update and rollback demo, not a health check.
 - `POST /api/v1/resumes` accepts multipart field `file` containing a text-based PDF up to 5 MB. Returns `201` with `resume_id`, `raw_text`, and `parsed_resume`.
 - `GET /api/v1/resumes/{id}` returns metadata and `parsed_resume`, without original PDF bytes; unknown IDs return `404`.
 - `POST /api/v1/jobs` accepts `{ "title": "optional", "description": "30 to 20000 characters" }` and returns `201` with `job_id`, title, description, and creation time.

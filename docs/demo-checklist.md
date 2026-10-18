@@ -56,8 +56,11 @@ Run these commands only after following `infra/k8s/README.md`. Add comments to t
 ./scripts/gke/demo.sh self-heal
 
 # Roll to a previously built immutable image tag, then restore the prior image.
+curl -i "http://$EXTERNAL_IP/api/v1/version"  # v1: HTTP 404
 ./scripts/gke/demo.sh release REPLACE_WITH_SECOND_TAG
+curl --fail "http://$EXTERNAL_IP/api/v1/version"  # v2: {"version":"demo-v2"}
 ./scripts/gke/demo.sh rollback
+curl -i "http://$EXTERNAL_IP/api/v1/version"  # v1: HTTP 404 again
 ```
 
 Record health requests succeeding during scale, Pod replacement, rollout, and rollback. Run k6 only against a non-LLM endpoint. Do not claim these criteria are complete until the commands have been executed successfully in the cloud.
