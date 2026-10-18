@@ -7,7 +7,7 @@ This is a planning estimate for a small classroom GKE demonstration, not a bill 
 - Region: `australia-southeast1` (Sydney), to be confirmed.
 - GKE Standard zonal cluster in `australia-southeast1-a` with two `e2-standard-2` worker nodes for multi-host orchestration evidence.
 - Approximately 730 running hours per month. For the course demo, the cluster will run only when needed.
-- Two replicas each for the frontend, `resume-service`, and `ai-service` during demonstrations.
+- One frontend replica and two replicas each for `resume-service` and `ai-service` during demonstrations.
 - One PVC-backed PostgreSQL Pod; this is economical but not highly available.
 - Low traffic, 10 GB persistent data, 5 GB image storage, and 5 GB internet egress.
 - A small number of `gpt-4o-mini` tailoring requests. LLM usage is usage-based and is not load-tested.

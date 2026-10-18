@@ -31,13 +31,13 @@ PostgreSQL is owned only by `resume-service`; `ai-service` is stateless. Java li
 ```mermaid
 flowchart LR
     U[Browser] --> LB[External LoadBalancer Service<br/>HTTP :80]
-    LB --> F[frontend Pods<br/>Nginx + React, 2 replicas]
+    LB --> F[frontend Pod<br/>Nginx + React, 1 replica]
     F --> R[resume-service Service<br/>2+ Pods]
     R --> P[(PostgreSQL<br/>PVC-backed Pod)]
     R --> A[ai-service Service<br/>2+ Pods]
     A --> O[OpenAI API]
 ```
 
-The GKE manifests use separate Deployments and Services for the frontend and both application services, with two replicas, readiness/liveness probes, resource requests/limits, a ConfigMap, and a runtime-created Kubernetes Secret. A frontend `LoadBalancer` Service provides the only public entry point. PostgreSQL uses a 10 Gi `standard-rwo` persistent disk through a StatefulSet volume claim.
+The GKE manifests use separate Deployments and Services for the frontend and both application services. Java and Python each have two replicas; the frontend has one. They have readiness/liveness probes, resource requests/limits, a ConfigMap, and a runtime-created Kubernetes Secret. A frontend `LoadBalancer` Service provides the only public entry point. PostgreSQL uses a 10 Gi `standard-rwo` persistent disk through a StatefulSet volume claim.
 
 The manifests and guarded GKE scripts are implemented but have **not yet been run or verified in Google Cloud**. A single PostgreSQL Pod remains a single point of failure; the application must not be described as end-to-end highly available until a replicated or managed database is used. Cloud completion requires recorded evidence of the public workflow, scaling, Service endpoints, Pod replacement, rolling update, rollback, and teardown.

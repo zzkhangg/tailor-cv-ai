@@ -9,7 +9,7 @@ The deployment exposes only the frontend through a public HTTP `LoadBalancer` Se
 - Region/zone: `australia-southeast1` / `australia-southeast1-a`.
 - Cluster: `tailorcv-demo`, GKE Standard, regular release channel.
 - Nodes: two `e2-standard-2` VMs with 30 GB boot disks.
-- Replicas: two each for frontend, Java, and Python; one PostgreSQL StatefulSet.
+- Replicas: one frontend, two Java, two Python; one PostgreSQL StatefulSet. Java Pods prefer different nodes.
 - Database storage: 10 Gi `standard-rwo` persistent volume.
 - Public entry point: frontend Service `type: LoadBalancer` on HTTP port 80.
 - Images: Artifact Registry with immutable tags; `latest` is rejected.
@@ -46,14 +46,15 @@ The script enables the required APIs, creates the Artifact Registry repository a
 
 ## 2. Build immutable images
 
-Use the current commit as the release identifier:
+Commit and push the simplified manifests before using a fresh Cloud Shell checkout. Check that the checkout has the intended version, then use its commit as the release identifier:
 
 ```bash
+git status --short
 export IMAGE_TAG="$(git rev-parse --short=12 HEAD)"
 ./scripts/gke/build-images.sh
 ```
 
-Cloud Build builds and pushes the frontend, `resume-service`, and `ai-service` images. Never use `latest`; immutable tags make rollout and rollback evidence unambiguous.
+`git status --short` should be empty so the image tag identifies the code being built. Cloud Build builds and pushes the frontend, `resume-service`, and `ai-service` images. Never use `latest`; immutable tags make rollout and rollback evidence unambiguous.
 
 ## 3. Create the local secret input
 
@@ -74,7 +75,16 @@ Keep `POSTGRES_PASSWORD` unchanged after PostgreSQL initializes its PVC. The dep
 IMAGE_TAG="$IMAGE_TAG" ./scripts/gke/deploy.sh
 ```
 
-The script creates the Kubernetes Secret without printing its values, renders Artifact Registry image names in a temporary directory, applies the Kustomize resources, waits for readiness, and prints the external address.
+The script creates the Kubernetes Secret without printing its values, renders Artifact Registry image names in a temporary directory, applies the Kustomize resources, waits for readiness, and prints the external address. It also removes the three PDBs from the older manifest set if present; `kubectl apply` alone would leave them behind.
+
+Check the new layout: frontend `1/1`, `resume-service` `2/2`, `ai-service` `2/2`, and PostgreSQL `1/1`. Only the frontend Service should have an external address.
+
+```bash
+kubectl get deployments,statefulsets,services -n tailorcv
+kubectl get pdb -n tailorcv
+```
+
+The second command should report no PDBs. The single frontend Pod can cause a brief interruption if it restarts; use the Java Pods for scaling, self-healing, rolling update, and rollback evidence.
 
 If the address is still pending:
 
@@ -114,7 +124,7 @@ Every command below is scoped to the `tailorcv` namespace where applicable.
 # Show both worker nodes, desired/ready replicas, Services, public IP, and images.
 ./scripts/gke/demo.sh status
 
-# Show multiple Pod IPs behind the frontend, Java, and Python Services.
+# Show the frontend endpoint and multiple Pod IPs behind the Java and Python Services.
 ./scripts/gke/demo.sh endpoints
 
 # Scale the Java API from two to three Pods without stopping its Service.

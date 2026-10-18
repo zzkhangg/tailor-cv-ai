@@ -46,7 +46,7 @@ Run these commands only after following `infra/k8s/README.md`. Add comments to t
 # Display nodes, desired/ready replicas, Services, public IP, and images.
 ./scripts/gke/demo.sh status
 
-# Display the multiple Pod IPs behind each stateless Service.
+# Display the frontend endpoint and multiple Pod IPs behind the Java and Python Services.
 ./scripts/gke/demo.sh endpoints
 
 # Increase Java API capacity from two to three ready Pods.

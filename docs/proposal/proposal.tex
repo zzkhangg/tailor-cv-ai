@@ -72,7 +72,7 @@ The stateless Python 3.12 FastAPI \texttt{ai-service} owns strict Pydantic parsi
 \newpage
 
 \section{Cloud deployment and cost}
-The planned deployment uses Google Kubernetes Engine (GKE). Separate Deployments and private ClusterIP Services will run at least two frontend, Java, and Python Pods. An external HTTP(S) Load Balancer and Ingress will expose the frontend. Resource requests/limits and health probes will support scheduling and safe traffic routing. PostgreSQL will use a persistent-volume-backed Pod for the classroom demonstration; this economical design is not database high availability.
+The planned deployment uses Google Kubernetes Engine (GKE). Separate Deployments will run one frontend Pod and at least two Java and Python Pods. A public HTTP LoadBalancer Service will expose the frontend; Java and Python use private ClusterIP Services. Resource requests/limits and health probes will support scheduling and safe traffic routing. PostgreSQL will use a persistent-volume-backed Pod for the classroom demonstration; this economical design is not database high availability.
 
 \begin{table}[!ht]
   \centering
@@ -114,9 +114,9 @@ The planned deployment uses Google Kubernetes Engine (GKE). Separate Deployments
   label/.style={font=\tiny,align=center,fill=white,inner sep=1pt}
 ]
   \node[external,text width=16mm] (browser) {Applicant\\browser};
-  \node[external,right=7mm of browser,text width=20mm] (lb) {Cloud HTTPS\\Load Balancer\\+ Ingress};
+  \node[external,right=7mm of browser,text width=20mm] (lb) {Cloud HTTP\\LoadBalancer\\Service};
 
-  \node[service,right=11mm of lb] (front) {frontend Service\\Nginx + React\\\textbf{2+ Pods}};
+  \node[service,right=11mm of lb] (front) {frontend Service\\Nginx + React\\\textbf{1 Pod}};
   \node[service,right=7mm of front,text width=25mm] (resume) {resume-service\\Spring Boot\\\textbf{2+ Pods}};
   \node[service,right=7mm of resume] (ai) {ai-service\\FastAPI\\\textbf{2+ Pods}};
   \node[external,right=11mm of ai,text width=17mm] (openai) {OpenAI API\\external};
@@ -130,7 +130,7 @@ The planned deployment uses Google Kubernetes Engine (GKE). Separate Deployments
   \end{scope}
 
   \draw[flow] (browser) -- (lb);
-  \draw[flow] (lb) -- node[label,above]{HTTPS} (front);
+  \draw[flow] (lb) -- node[label,above]{HTTP} (front);
   \draw[flow] (front) -- node[label,above]{\texttt{/api/v1/*}} (resume);
   \draw[flow] (resume) -- node[label,above]{\texttt{/internal/*}} (ai);
   \draw[flow] (ai) -- node[label,above]{provider call} (openai);
@@ -140,7 +140,7 @@ The planned deployment uses Google Kubernetes Engine (GKE). Separate Deployments
 
   \node[font=\small\bfseries\color{blue},anchor=south west,
         above=1mm of cluster.north west] {GKE cluster};
-  \node[font=\tiny,align=center,below=2mm of cluster.south] {ClusterIP Services keep Java, Python, and PostgreSQL private; only Ingress is public.};
+  \node[font=\tiny,align=center,below=2mm of cluster.south] {ClusterIP Services keep Java, Python, and PostgreSQL private; only the frontend LoadBalancer is public.};
 \end{tikzpicture}
 \caption{Target GKE architecture. It remains planned until cloud deployment and operational tests are completed.}
 \end{figure}

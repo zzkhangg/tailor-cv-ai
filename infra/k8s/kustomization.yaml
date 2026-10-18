@@ -8,7 +8,6 @@ resources:
   - ai-service.yaml
   - resume-service.yaml
   - frontend.yaml
-  - pdb.yaml
 images:
   - name: tailorcv/frontend
     newName: tailorcv/frontend

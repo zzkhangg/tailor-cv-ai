@@ -69,6 +69,10 @@ sed -i "s|^  name: tailorcv$|  name: $K8S_NAMESPACE|" \
 
 kubectl apply -k "$render_dir"
 
+# Older deployments included these PDBs; apply does not remove deleted manifests.
+kubectl delete pdb frontend resume-service ai-service \
+  -n "$K8S_NAMESPACE" --ignore-not-found
+
 if [[ "$existing_deployment" == "true" ]]; then
   kubectl rollout restart deployment/ai-service deployment/resume-service \
     -n "$K8S_NAMESPACE"

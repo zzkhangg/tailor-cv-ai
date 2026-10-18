@@ -40,15 +40,6 @@ spec:
         app.kubernetes.io/component: backend
         app.kubernetes.io/part-of: tailorcv
     spec:
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              podAffinityTerm:
-                topologyKey: kubernetes.io/hostname
-                labelSelector:
-                  matchLabels:
-                    app.kubernetes.io/name: ai-service
       containers:
         - name: ai-service
           image: tailorcv/ai-service:dev
