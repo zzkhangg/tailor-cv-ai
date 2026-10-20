@@ -20,6 +20,8 @@ The monorepo contains a React frontend, Java API, Python API, and PostgreSQL sch
 
 For GKE setup, immutable image builds, deployment, demonstration, troubleshooting, and teardown, follow [`infra/k8s/README.md`](infra/k8s/README.md). The only public Kubernetes endpoint is the frontend HTTP `LoadBalancer`; do not use real applicant data because the classroom deployment has neither authentication nor TLS.
 
+The GKE guide works from a Git checkout or an extracted source ZIP. A ZIP made with `git archive` has no `.git` directory: set a unique `IMAGE_TAG` manually instead of using `git rev-parse`, and create `.env.k8s` separately in Cloud Shell. The guide explains both tag options and the prerequisites for a genuine rolling-update/rollback demo.
+
 ### Run locally
 
 1. Install Docker Desktop with Compose and ensure the Docker daemon is running.

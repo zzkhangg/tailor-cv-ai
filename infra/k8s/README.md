@@ -46,7 +46,7 @@ The script enables the required APIs, creates the Artifact Registry repository a
 
 ## 2. Build immutable images
 
-Commit and push the simplified manifests before using a fresh Cloud Shell checkout. Check that the checkout has the intended version, then use its commit as the release identifier:
+From a Git checkout in Cloud Shell, check that it has the intended version and use its commit as the image tag:
 
 ```bash
 git status --short
@@ -55,6 +55,16 @@ export IMAGE_TAG="$(git rev-parse --short=12 HEAD)"
 ```
 
 `git status --short` should be empty so the image tag identifies the code being built. Cloud Build builds and pushes the frontend, `resume-service`, and `ai-service` images. Never use `latest`; immutable tags make rollout and rollback evidence unambiguous.
+
+If deploying from the submitted source ZIP, extract it in Cloud Shell and change into its root (the directory containing `README.md` and `scripts/gke/`). A `git archive` ZIP has no `.git`, so `git rev-parse` cannot generate a tag. Instead, choose a unique tag for this exact source version before running the same build and deploy commands:
+
+```bash
+# Example only: choose a new tag each time the source changes.
+export IMAGE_TAG=submission-v2-20261021
+./scripts/gke/build-images.sh
+```
+
+Both scripts accept the explicit `IMAGE_TAG` even without `.git` (but still require the `git` command to be installed). Do not reuse a tag for changed code. The ZIP does not contain `.env.k8s`; create it as described next.
 
 ## 3. Create the local secret input
 
@@ -134,14 +144,18 @@ Every command below is scoped to the `tailorcv` namespace where applicable.
 ./scripts/gke/demo.sh self-heal
 ```
 
-For rolling update evidence, build a second tested immutable tag, deploy it only to Java, then roll back:
+For rolling update evidence, the image currently running in Java and the new image must contain **different tested code**. This repository's current Java source already implements `/api/v1/version` and returns `{"version":"demo-v2"}`. Therefore, a fresh deployment built from this checkout or ZIP is already v2; simply rebuilding it under another tag does not demonstrate an application change.
+
+The following v1-to-v2 example applies **only if** the running Java Deployment uses an older, pre-version v1 image (whose version endpoint returns HTTP 404). Keep that v1 image available for rollback. Build v2 from the current source with a new tag, update only Java, and then roll back:
 
 ```bash
-# Before release, the v1 Java image does not have this endpoint (HTTP 404).
+# Confirm the running image is the older v1 version (HTTP 404 here).
+kubectl get deployment resume-service -n tailorcv \
+  -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
 curl -i "http://$EXTERNAL_IP/api/v1/version"
 
-# Commit and pull the Java v2 change before building its image.
-export RELEASE_TAG="demo-v2-$(git rev-parse --short=12 HEAD)"
+# Choose a unique tag for this tested v2 source (works from a checkout or ZIP).
+export RELEASE_TAG=demo-v2-submission-20261021
 IMAGE_TAG="$RELEASE_TAG" ./scripts/gke/build-images.sh
 
 # Update the Java Deployment with maxUnavailable=0 and show revision history.
@@ -153,7 +167,7 @@ curl --fail "http://$EXTERNAL_IP/api/v1/version"
 curl -i "http://$EXTERNAL_IP/api/v1/version"
 ```
 
-The v2 request should return `{"version":"demo-v2"}`; after rollback, v1 should return HTTP 404 again. Wait for each rollout to complete before comparing responses, because old and new Java Pods coexist briefly during an update. The release command changes only the Java Deployment; do not run `deploy.sh` between `release` and `rollback`, as it reapplies the manifest's image tag.
+With the stated v1 precondition, the v2 request should return `{"version":"demo-v2"}` and rollback should restore HTTP 404. If the running image already has the version endpoint, use a new, tested Java code change and image for the next rollout, then verify its actual before/after behavior instead; do not claim this v1-to-v2 result. Wait for each rollout to complete before comparing responses, because old and new Java Pods coexist briefly during an update. The release command changes only the Java Deployment; do not run `deploy.sh` between `release` and `rollback`, as it reapplies the manifest's image tag.
 
 While scaling or deleting a Pod, repeatedly request `http://$EXTERNAL_IP/api/v1/health` to demonstrate continued availability. Capture the commands, their comments, timestamps, ready replica counts, node placement, image tags, and successful responses. A single PostgreSQL Pod remains a documented single point of failure.
 
