@@ -38,7 +38,7 @@ docker compose down
 
 Run the frontend tests/build, Python pytest suite, and Maven tests using the commands in the top-level README. Do not run the paid smoke workflow without an intentionally configured key.
 
-## Kubernetes evidence (scripts implemented; cloud run pending)
+## Kubernetes demonstration commands
 
 Run these commands only after following `infra/k8s/README.md`. Add comments to the submitted/demo command sheet and never delete resources outside the demo namespace.
 

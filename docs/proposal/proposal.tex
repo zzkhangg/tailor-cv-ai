@@ -25,7 +25,7 @@
   urlcolor=blue,
   linkcolor=ink,
   pdftitle={TailorCV: A Cloud-Based Resume Tailoring Platform},
-  pdfauthor={YOUR NAME}
+  pdfauthor={Khang Vuong}
 }
 
 \setlength{\parindent}{0pt}
@@ -62,17 +62,17 @@ The objective is to provide a responsive, end-to-end resume-tailoring workflow w
 \subsection{Traditional limitations and cloud benefits}
 A desktop-only implementation ties processing and stored data to one machine, complicates updates, and cannot share capacity when demand changes. A single server also couples the user interface, document processing, AI integration, and database failure domains. Manual deployment creates downtime and inconsistent environments.
 
-Containerised cloud services instead separate the public workflow from AI processing and persistence. Kubernetes can maintain replicas, replace failed Pods, distribute requests through Services, and perform rolling updates with rollback. Readiness probes prevent traffic reaching unavailable instances, while persistent storage separates database data from container lifetimes. ConfigMaps and Secrets keep deployment settings and credentials out of images. These capabilities make the service more scalable and resilient than a single manually managed host; they do not, by themselves, improve AI correctness.
+Containerised cloud services instead separate the public workflow from AI processing and persistence. Kubernetes can maintain replicas, replace failed Pods, distribute requests through Services, and perform rolling updates with rollback. Readiness probes keep unready Pods out of Service endpoints, while persistent storage separates database data from container lifetimes. ConfigMaps and Secrets keep deployment settings and credentials out of images. These capabilities improve scalability and resilience, but do not guarantee zero downtime or improve AI correctness.
 
 \section{Technical solution}
-The React 19 and TypeScript frontend is built with Vite and served by Nginx. It calls only the Java 21 Spring Boot \texttt{resume-service}, which validates PDFs, extracts text with PDFBox, owns the public REST API, persists data through Spring Data JPA and Flyway, and produces matching HTML/PDF output with Thymeleaf and OpenHTMLtoPDF. PostgreSQL 17 stores bounded original PDF bytes, extracted text, canonical JSON, job descriptions, and tailoring runs.
+The React 19 and TypeScript frontend is built with Vite. Nginx serves the built React app and reverse-proxies \texttt{/api/v1/*} requests to the internal Java 21 Spring Boot \texttt{resume-service}. Java validates PDFs, extracts text with PDFBox, owns the public REST API, persists data through Spring Data JPA and Flyway, and produces matching HTML/PDF output with Thymeleaf and OpenHTMLtoPDF. PostgreSQL 17 stores bounded original PDF bytes, extracted text, canonical JSON, job descriptions, and tailoring runs.
 
-The stateless Python 3.12 FastAPI \texttt{ai-service} owns strict Pydantic parsing and tailoring contracts. Default extraction is conservative and rule-based. Optional OpenAI structured output uses bounded timeouts and schema validation. Tailoring selects source skills and experience bullets by index; Python then reconstructs the result from source data to reject unsupported claims. Provider failures are exposed only as sanitised errors. Docker Compose currently runs the four containers locally, with health and readiness checks covering service dependencies.
+The stateless Python 3.12 FastAPI \texttt{ai-service} owns strict Pydantic parsing and tailoring contracts. Default extraction is conservative and rule-based. Optional OpenAI structured output uses bounded timeouts and schema validation. Tailoring selects source skills and experience bullets by index; Python then reconstructs the result from source data to reject unsupported claims. Provider failures are exposed only as sanitised errors. Docker Compose supports local development; the same services are containerised for GKE.
 
 \newpage
 
 \section{Cloud deployment and cost}
-The planned deployment uses Google Kubernetes Engine (GKE). Separate Deployments will run one frontend Pod and at least two Java and Python Pods. A public HTTP LoadBalancer Service will expose the frontend; Java and Python use private ClusterIP Services. Resource requests/limits and health probes will support scheduling and safe traffic routing. PostgreSQL will use a persistent-volume-backed Pod for the classroom demonstration; this economical design is not database high availability.
+The GKE deployment uses a two-node, zonal Standard cluster in Sydney. Separate Deployments specify one frontend Pod, two Java Pods, and two Python Pods. A public HTTP LoadBalancer Service exposes only the frontend; Java, Python, and PostgreSQL use private ClusterIP Services. Kubernetes probes, resource requests/limits, a ConfigMap, and a Secret control operation. PostgreSQL 17 runs as one StatefulSet Pod with a 10 Gi persistent-volume claim. Java Pods prefer different nodes. Backend replicas and Pod replacement improve resilience but cannot guarantee uninterrupted service; the frontend and database remain single points of failure.
 
 \begin{table}[!ht]
   \centering
@@ -82,20 +82,20 @@ The planned deployment uses Google Kubernetes Engine (GKE). Separate Deployments
     \toprule
     \textbf{Resource} & \textbf{Planning assumption} & \textbf{USD/month} \\
     \midrule
-    GKE management & One cluster; credit depends on eligibility & \$0--73 \\
-    Compute Engine & Two general-purpose worker nodes, 730 hours & \$120--190 \\
-    Load balancing & One external HTTP(S) forwarding path & \$18--25 \\
-    Storage and registry & 10 GB disk and about 5 GB images & \$1.50--3 \\
-    Network egress & About 5 GB; destination-dependent & \$1--2 \\
-    OpenAI API & Demo-scale \texttt{gpt-4o-mini} usage & $<\$1$ \\
+    GKE management & Calculator: zonal cluster & \$73.00 \\
+    Compute Engine & Calculator: 2 \texttt{e2-standard-2} nodes & \$138.82 \\
+    Node boot disks & Calculator: 60 GiB balanced PD & \$8.10 \\
+    Conditional GKE credit & If available on the billing account & $-\$73.00$ \\
+    Other infrastructure & Provisional: L4 LB, network, PVC, images & $\sim\$29$ \\
+    Build and AI & Free-tier builds, demo model usage & $<\$1$ \\
     \midrule
-    \textbf{Estimated total} & \textbf{Provisional, before tax} & \textbf{\$141--294} \\
+    \textbf{Estimated total} & \textbf{Assuming credit; before tax} & \textbf{\$176--177} \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
 \noindent\fcolorbox{amber}{white}{%
-  \parbox{0.965\linewidth}{\small\textbf{Before submission:} replace this range with one dated Google Cloud Pricing Calculator configuration and one total after the GKE topology is verified.}}
+  \parbox{0.965\linewidth}{\small Google Calculator CSV (20 Oct 2026): \$219.92 for cluster, nodes, and boot disks before credit. The credit is conditional; other items are separate estimates. Without credit, the planning total is \$249--250/month. Actual billing may differ.}}
 
 \section{Architecture design}
 
@@ -114,7 +114,7 @@ The planned deployment uses Google Kubernetes Engine (GKE). Separate Deployments
   label/.style={font=\tiny,align=center,fill=white,inner sep=1pt}
 ]
   \node[external,text width=16mm] (browser) {Applicant\\browser};
-  \node[external,right=7mm of browser,text width=20mm] (lb) {Cloud HTTP\\LoadBalancer\\Service};
+  \node[external,right=7mm of browser,text width=20mm] (lb) {External L4 LB\\HTTP :80};
 
   \node[service,right=11mm of lb] (front) {frontend Service\\Nginx + React\\\textbf{1 Pod}};
   \node[service,right=7mm of front,text width=25mm] (resume) {resume-service\\Spring Boot\\\textbf{2+ Pods}};
@@ -142,9 +142,9 @@ The planned deployment uses Google Kubernetes Engine (GKE). Separate Deployments
         above=1mm of cluster.north west] {GKE cluster};
   \node[font=\tiny,align=center,below=2mm of cluster.south] {ClusterIP Services keep Java, Python, and PostgreSQL private; only the frontend LoadBalancer is public.};
 \end{tikzpicture}
-\caption{Target GKE architecture. It remains planned until cloud deployment and operational tests are completed.}
+\caption{GKE deployment topology: only the frontend is publicly reachable.}
 \end{figure}
 
-The browser never calls Python or PostgreSQL directly. Java orchestrates upload, persistence, tailoring, and export, while Python remains stateless and independently scalable. The assessment will demonstrate scaling, Service load balancing, Pod replacement, rolling update, and rollback. Current limitations are no authentication or OCR, dependence on PDF text order and an external model, and non-replicated PostgreSQL.
+The browser never calls Python or PostgreSQL directly. Java orchestrates upload, persistence, tailoring, and export, while Python remains stateless and independently scalable. Demo commands exercise scaling, Service routing, Pod replacement, rolling update, and rollback. Current limitations include no authentication, HTTPS, or OCR; dependence on an external model; one frontend Pod; and non-replicated PostgreSQL. Only fictional applicant data should be used.
 
 \end{document}

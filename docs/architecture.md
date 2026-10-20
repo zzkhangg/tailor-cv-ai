@@ -26,7 +26,7 @@ Docker Compose runs the frontend, `resume-service`, `ai-service`, and PostgreSQL
 
 PostgreSQL is owned only by `resume-service`; `ai-service` is stateless. Java liveness checks only its process. Readiness also checks PostgreSQL and Python. Provider failures and timeouts are mapped to sanitized public errors.
 
-## Implemented deployment definition (Phase 6, cloud verification pending)
+## GKE deployment definition (Phase 6)
 
 ```mermaid
 flowchart LR
@@ -40,4 +40,4 @@ flowchart LR
 
 The GKE manifests use separate Deployments and Services for the frontend and both application services. Java and Python each have two replicas; the frontend has one. They have readiness/liveness probes, resource requests/limits, a ConfigMap, and a runtime-created Kubernetes Secret. A frontend `LoadBalancer` Service provides the only public entry point. PostgreSQL uses a 10 Gi `standard-rwo` persistent disk through a StatefulSet volume claim.
 
-The manifests and guarded GKE scripts are implemented but have **not yet been run or verified in Google Cloud**. A single PostgreSQL Pod remains a single point of failure; the application must not be described as end-to-end highly available until a replicated or managed database is used. Cloud completion requires recorded evidence of the public workflow, scaling, Service endpoints, Pod replacement, rolling update, rollback, and teardown.
+The project operator reports having run the cluster and tested rollout/rollback; the live cloud state has not been independently checked from this repository. A single frontend Pod and PostgreSQL Pod remain single points of failure, so this is not end-to-end high availability. During the live demonstration, verify the public workflow, scaling, Service endpoints, Pod replacement, rolling update, and rollback. Screenshots or logs are useful fallback material but are not a stated submission requirement.

@@ -1,6 +1,6 @@
 # LaTeX proposal
 
-`proposal.tex` is the editable two-page proposal source. Replace `YOUR NAME` and `STUDENT ID`, then update the GKE configuration, cost total, and planned/implemented wording after cloud verification.
+`proposal.tex` is the editable two-page proposal source. It reflects the configured GKE topology and the cloud run reported by the project operator. The GKE cluster/node/boot-disk subtotal comes from a Google Cloud Pricing Calculator CSV exported on 20 October 2026; other resources remain estimates, not a billing statement.
 
 Compile twice into a temporary directory so generated files do not enter the repository:
 

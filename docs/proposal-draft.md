@@ -1,6 +1,6 @@
 # TailorCV cloud application proposal — draft
 
-> Submission constraints: maximum 1,000 words and two A4 pages. This draft describes the completed MVP and clearly identifies the GKE deployment as planned. Update the cloud tense, exact configuration, cost total, and architecture figure only after deployment is verified.
+> Submission constraints: maximum 1,000 words and two A4 pages. This draft matches the configured GKE topology and the cloud run reported by the project operator. The LaTeX PDF is the submission source of truth.
 
 ## Introduction
 
@@ -18,25 +18,25 @@ A desktop-only implementation ties processing and stored data to one machine, co
 
 ### Cloud benefits
 
-Containerised services separate the public workflow from AI processing and persistence. Kubernetes can maintain multiple replicas, replace failed Pods, distribute requests through Services, and apply rolling updates with rollback. Readiness probes prevent traffic reaching an unavailable service, while persistent storage separates PostgreSQL data from container lifetimes. Environment configuration and Secrets keep deployment settings and credentials out of images. These properties support a more scalable and resilient service than a single manually managed host.
+Containerised services separate the public workflow from AI processing and persistence. Kubernetes can maintain multiple replicas, replace failed Pods, distribute requests through Services, and apply rolling updates with rollback. Readiness probes keep unready Pods out of Service endpoints, while persistent storage separates PostgreSQL data from container lifetimes. Environment configuration and Secrets keep deployment settings and credentials out of images. These properties improve resilience but do not guarantee zero downtime.
 
 ## Technical solution
 
-The React 19 and TypeScript frontend is built with Vite and served by Nginx. It calls only the Java 21 Spring Boot `resume-service`, which validates PDFs, extracts text with PDFBox, owns the public REST API, persists data through Spring Data JPA/Flyway, and produces matching HTML/PDF output with Thymeleaf and OpenHTMLtoPDF. PostgreSQL 17 stores original PDF bytes, extracted text, canonical JSON, job descriptions, and tailoring runs.
+The React 19 and TypeScript frontend is built with Vite. Nginx serves the built React app and reverse-proxies `/api/v1/*` requests to the internal Java 21 Spring Boot `resume-service`. Java validates PDFs, extracts text with PDFBox, owns the public REST API, persists data through Spring Data JPA/Flyway, and produces matching HTML/PDF output with Thymeleaf and OpenHTMLtoPDF. PostgreSQL 17 stores original PDF bytes, extracted text, canonical JSON, job descriptions, and tailoring runs.
 
 The stateless Python 3.12 FastAPI `ai-service` owns strict Pydantic parsing and tailoring contracts. Default extraction is conservative and rule-based. Optional OpenAI structured output is bounded by timeouts and schema validation. Tailoring selects source skills and experience bullets by index, after which the service reconstructs the result from source data to reduce unsupported claims. Provider errors are sanitized. Docker Compose currently runs all four containers locally and health/readiness checks verify service dependencies.
 
-The planned cloud deployment uses Google Kubernetes Engine. Separate Deployments will run one frontend Pod and at least two Java and Python Pods. The frontend LoadBalancer Service will be public; Java and Python will use private ClusterIP Services. ConfigMaps, Secrets, probes, and resource requests/limits will control operation. PostgreSQL will use a persistent-volume-backed Pod for the course demonstration. This database remains a documented single point of failure; a managed, highly available database would be preferable in production.
+The cloud deployment uses a two-node, zonal GKE Standard cluster in Sydney. Separate Deployments specify one frontend Pod, two Java Pods, and two Python Pods. Only the frontend is public through an HTTP LoadBalancer Service, implemented by GKE as a regional external passthrough Network Load Balancer; Java, Python, and PostgreSQL use private ClusterIP Services. A ConfigMap, Secret, probes, and resource requests/limits control operation. PostgreSQL runs in a one-replica StatefulSet with a 10 Gi persistent-volume claim. Backend replicas and Pod replacement improve resilience but cannot guarantee uninterrupted service; the single frontend Pod and database are documented single points of failure.
 
-For a small always-on classroom deployment in Sydney, the provisional estimate is USD $141–294 per month: GKE management $0–73, two worker nodes $120–190, load balancing $18–25, and under $5 for disk, images, low egress, and demo-scale model usage. The final submission will replace this range with one dated Google Cloud Pricing Calculator configuration. Development remains local, billing alerts will be enabled, and cloud resources will be deleted after evidence is captured.
+The Google Cloud Pricing Calculator CSV exported on 20 October 2026 gives USD $219.92 per 730-hour month for the zonal cluster fee ($73), two `e2-standard-2` nodes ($138.82), and 60 GiB balanced node boot disks ($8.10). An eligible GKE zonal-cluster credit would offset the $73 fee, leaving $146.92 for these listed items. It does not cover compute or disks. The CSV excludes the public L4 LoadBalancer, node IPv4, network egress, the separate 10 GiB PostgreSQL PVC, registry storage, and OpenAI calls. Using provisional amounts of about $27 for networking and $2 for the PVC and images, plus under $1 for demo model usage, the full planning total is about $176–177/month with the eligible credit or $249–250 without it. Taxes, unusual traffic, and extra billable resources are excluded. A short-lived course demo costs less; billing alerts and teardown limit expenditure.
 
 ## Architecture design
 
 ```text
-Browser → Cloud Load Balancer/Ingress → React/Nginx Pods
-                                      → resume-service Pods
-                                           ├─ PostgreSQL + persistent volume
-                                           └─ ai-service Pods → OpenAI API
+Browser → external L4 LoadBalancer Service → React/Nginx Pod (1)
+                                             → resume-service Service → Java Pods (2)
+                                                                          ├─ PostgreSQL Pod + PVC
+                                                                          └─ ai-service Service → Python Pods (2) → OpenAI API
 ```
 
-The browser never calls Python or PostgreSQL directly. Java orchestrates upload, persistence, tailoring, and export; Python remains stateless and independently scalable. The assessment demonstration will show the complete workflow, replica scaling, load balancing, Pod replacement, rolling update, and rollback. Current limitations include no authentication, no OCR for scanned PDFs, variable PDF text ordering, external-model availability, and non-replicated PostgreSQL.
+The browser never calls Python or PostgreSQL directly. Java orchestrates upload, persistence, tailoring, and export; Python remains stateless and independently scalable. The assessment demonstration covers the complete workflow, replica scaling, Service routing, Pod replacement, rolling update, and rollback. Current limitations include no authentication, HTTPS, or OCR; variable PDF text ordering; external-model availability; one frontend Pod; and non-replicated PostgreSQL.

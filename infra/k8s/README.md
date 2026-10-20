@@ -1,6 +1,6 @@
 # TailorCV on Google Kubernetes Engine
 
-These manifests and scripts deploy the classroom TailorCV demo to a two-node GKE Standard cluster. They have been validated locally but have **not** been executed against a Google Cloud project. Run them from Google Cloud Shell after confirming billing, quota, and budget alerts.
+These manifests and scripts deploy the classroom TailorCV demo to a two-node GKE Standard cluster. The project operator reports having run the cluster and tested rollout/rollback; the live cloud state is not independently verified here. Run them from Google Cloud Shell after confirming billing, quota, and budget alerts.
 
 The deployment exposes only the frontend through a public HTTP `LoadBalancer` Service. `resume-service`, `ai-service`, and PostgreSQL use private ClusterIP Services. Do not upload real applicant data: the demo has no authentication or TLS.
 

@@ -1,8 +1,8 @@
 # TailorCV — AI-Powered Resume Tailoring Platform
 
-## Implementation status (15 October 2026)
+## Implementation status (20 October 2026)
 
-The monorepo contains a React frontend, Java API, Python API, and PostgreSQL schema. Phase 2 adds PDF upload, conservative structured parsing, resume retrieval, and job description creation. Phase 3 adds optional grounded AI tailoring and persisted tailoring runs. Phase 4 completes the two-page browser workflow, change and missing-requirement review, a server-rendered HTML preview, and on-demand PDF export using the same Thymeleaf template. Phase 6 now includes GKE manifests and guarded Cloud Shell automation for a two-node deployment, but the cloud run and its assessment evidence remain unverified until executed in a billed Google Cloud project.
+The monorepo contains a React frontend, Java API, Python API, and PostgreSQL schema. Phase 2 adds PDF upload, conservative structured parsing, resume retrieval, and job description creation. Phase 3 adds optional grounded AI tailoring and persisted tailoring runs. Phase 4 completes the two-page browser workflow, change and missing-requirement review, a server-rendered HTML preview, and on-demand PDF export using the same Thymeleaf template. Phase 6 includes GKE manifests and guarded Cloud Shell automation for a two-node deployment. The project operator reports having run the cluster and tested rollout/rollback; live cloud resources and demo outputs are not independently verified from this repository.
 
 For GKE setup, immutable image builds, deployment, demonstration, troubleshooting, and teardown, follow [`infra/k8s/README.md`](infra/k8s/README.md). The only public Kubernetes endpoint is the frontend HTTP `LoadBalancer`; do not use real applicant data because the classroom deployment has neither authentication nor TLS.
 
