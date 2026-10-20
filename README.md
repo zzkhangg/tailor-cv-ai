@@ -1,5 +1,19 @@
 # TailorCV — AI-Powered Resume Tailoring Platform
 
+## AI/MT usage acknowledgement
+
+I used **OpenAI Codex (a ChatGPT coding assistant)** for implementation support, deployment guidance, cost review, and demo preparation. I am responsible for reviewing the AI-assisted material and the final work.
+
+1. **AI/MT Tool:** OpenAI Codex. **Purpose of Use:** establish the initial project structure. **Prompts Used:** “Read `README.md` carefully. Implement Phase 1 only: create the monorepo skeleton, minimal React/Vite frontend, Spring Boot (Java 21/Maven) resume-service and FastAPI (Python 3.12) ai-service health endpoints, PostgreSQL Docker Compose setup, `.env.example`, and README local startup commands.” The full original English prompt appears in “Codex instructions” below. **Where the AI/MT Tool Was Used:** initial `frontend/`, `services/resume-service/`, `services/ai-service/`, `compose.yaml`, `.env.example`, and this README.
+2. **AI/MT Tool:** OpenAI Codex. **Purpose of Use:** simplify and explain the Kubernetes deployment. **Prompts Used:** “Simplify `infra/k8s/` based on the suggestions above”; “Update the deployment procedure”; “Give me detailed commands for running it”; “Explain the project structure and how Kubernetes works so I can understand the whole project.” **Where the AI/MT Tool Was Used:** `infra/k8s/`, `scripts/gke/`, deployment sections of this README, `docs/architecture.md`, and live-demo preparation.
+3. **AI/MT Tool:** OpenAI Codex. **Purpose of Use:** demonstrate a real Java change, rolling update, and rollback. **Prompts Used:** “I have reached the v2 rollout demo; implement a version change in the Java service”; “I have run the tests; do I need to save evidence?”; “Give me commands to capture evidence while the cluster is running.” **Where the AI/MT Tool Was Used:** the version endpoint and tests in `services/resume-service/`, `scripts/gke/demo.sh`, `docs/demo-checklist.md`, and demo preparation.
+
+4. **AI/MT Tool:** OpenAI Codex. **Purpose of Use:** verify GKE pricing and distinguish Calculator figures from estimates. **Prompts Used:** “Can you use this link to check the number and the configuration?”; “The GKE Calculator shows USD 219.92 before other costs; check this CSV”; “Where did the other prices come from if the Calculator only includes the cluster?”. **Where the AI/MT Tool Was Used:** the proposal cost table, `docs/cost-estimate.md`, and explanations of the CSV and conditional GKE credit.
+
+**AI/MT Tool in the application:** the optional OpenAI API (`gpt-4o-mini` by default) is a runtime feature, separate from Codex assistance. **Purpose of Use:** parse resume text only when explicitly enabled, and select source-grounded skills/experience bullets during tailoring. **Prompts Used:** the actual instructions and dynamically supplied fictional resume/job text are defined in `services/ai-service/app/ai_parsing.py` and `services/ai-service/app/tailoring.py`; the latter is exercised by the opt-in Phase 4 smoke test. **Where the AI/MT Tool Was Used:** those modules, their tests, and any fictional-data tailoring demonstration. No real applicant data should be used.
+
+**Before submission:** This list covers the prompts available in this conversation and the Phase 1 prompt preserved below. It may not cover earlier Phase 2–4 development or other AI/MT tools, chats, or prompts. I must add any missing use with its actual tool, purpose, prompt(s), and affected files. These English translations must not be presented as verbatim English prompts.
+
 ## Implementation status (20 October 2026)
 
 The monorepo contains a React frontend, Java API, Python API, and PostgreSQL schema. Phase 2 adds PDF upload, conservative structured parsing, resume retrieval, and job description creation. Phase 3 adds optional grounded AI tailoring and persisted tailoring runs. Phase 4 completes the two-page browser workflow, change and missing-requirement review, a server-rendered HTML preview, and on-demand PDF export using the same Thymeleaf template. Phase 6 includes GKE manifests and guarded Cloud Shell automation for a two-node deployment. The project operator reports having run the cluster and tested rollout/rollback; live cloud resources and demo outputs are not independently verified from this repository.
@@ -133,7 +147,7 @@ No authentication in MVP: use random UUIDs and do not expose list-all endpoints.
 ```json
 {
   "name": "Jane Doe",
-  "contact": {"email": "jane@example.com", "phone": "", "location": ""},
+  "contact": { "email": "jane@example.com", "phone": "", "location": "" },
   "summary": "Software engineering student...",
   "skills": ["Python", "FastAPI"],
   "experience": [
@@ -156,23 +170,23 @@ Define the same canonical contract as Java DTOs (Bean Validation) and strict Pyd
 
 Public API (`resume-service`, prefix `/api/v1`):
 
-| Method | Path | Behavior |
-|---|---|---|
-| `GET` | `/health` | Fast health check; no LLM call |
-| `POST` | `/resumes` | Multipart PDF upload; return `resume_id`, extracted/parsed data |
-| `GET` | `/resumes/{id}` | Return parsed resume and metadata, not raw PDF bytes |
-| `POST` | `/jobs` | Accept `{ "title": "...", "description": "..." }`, return `job_id` |
-| `POST` | `/tailor` | Accept `{ "resume_id": "...", "job_id": "..." }`; generate and persist tailored resume, return run ID and result |
-| `GET` | `/tailor/{run_id}` | Return run status, tailored JSON, change summary |
-| `GET` | `/tailor/{run_id}/preview` | Return rendered HTML or preview JSON for frontend |
-| `GET` | `/tailor/{run_id}/pdf` | Generate PDF from stored tailored JSON; `application/pdf` |
+| Method | Path                       | Behavior                                                                                                         |
+| ------ | -------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/health`                  | Fast health check; no LLM call                                                                                   |
+| `POST` | `/resumes`                 | Multipart PDF upload; return `resume_id`, extracted/parsed data                                                  |
+| `GET`  | `/resumes/{id}`            | Return parsed resume and metadata, not raw PDF bytes                                                             |
+| `POST` | `/jobs`                    | Accept `{ "title": "...", "description": "..." }`, return `job_id`                                               |
+| `POST` | `/tailor`                  | Accept `{ "resume_id": "...", "job_id": "..." }`; generate and persist tailored resume, return run ID and result |
+| `GET`  | `/tailor/{run_id}`         | Return run status, tailored JSON, change summary                                                                 |
+| `GET`  | `/tailor/{run_id}/preview` | Return rendered HTML or preview JSON for frontend                                                                |
+| `GET`  | `/tailor/{run_id}/pdf`     | Generate PDF from stored tailored JSON; `application/pdf`                                                        |
 
 Internal API (`ai-service`, Kubernetes ClusterIP only):
 
-| Method | Path | Behavior |
-|---|---|---|
-| `GET` | `/health` | Health endpoint |
-| `POST` | `/internal/parse` | Accept extracted resume text; return canonical structured resume JSON |
+| Method | Path               | Behavior                                                                                    |
+| ------ | ------------------ | ------------------------------------------------------------------------------------------- |
+| `GET`  | `/health`          | Health endpoint                                                                             |
+| `POST` | `/internal/parse`  | Accept extracted resume text; return canonical structured resume JSON                       |
 | `POST` | `/internal/tailor` | Accept canonical resume JSON and JD text; return validated tailored JSON and change summary |
 
 Error contracts: 400 invalid input, 404 missing ID, 413 file too large, 415 unsupported file, 422 extraction/schema validation error, 502/503 upstream AI unavailable, 504 timeout. Never leak prompts, keys or private resume content in error logs. Add timeouts and bounded retries for transient LLM errors. Synchronous tailoring is acceptable for the MVP; show loading state and a useful failure message.
@@ -180,6 +194,7 @@ Error contracts: 400 invalid input, 404 missing ID, 413 file too large, 415 unsu
 ## 9. AI behavior and safeguards
 
 **System constraints:**
+
 - Rewrite/reorder only facts supported by the original resume; no fabricated employers, education, dates, years of experience, tools, certifications, numerical results, or achievements.
 - Prefer JD-relevant skills **only if present in the original**.
 - Preserve factual fields; rewrite bullets for clarity and relevance.
@@ -252,33 +267,40 @@ tailorcv/
 ## 12. Implementation phases and acceptance criteria
 
 ### Phase 1 — Skeleton and contracts (13 Oct)
+
 - Create monorepo, multi-stage Maven Dockerfile for Spring Boot, Python Dockerfile, Compose, env example, Spring Actuator/Python health endpoints, and API contracts.
 - Design Java JPA entities, Java/Python JSON contracts, and Flyway SQL migrations.
 - Draft proposal architecture and initial budget assumptions.
 - **Done when:** `docker compose up --build` starts React, Java API, Python API and PostgreSQL; health checks pass; Java can reach Python by service name.
 
 ### Phase 2 — Resume and JD (14 Oct)
+
 - Implement Java PDF upload/validation/extraction with PDFBox; call Python `/internal/parse` for structured resume JSON; persist using Spring Data JPA/PostgreSQL; implement JD creation.
 - **Done when:** uploading a sample text PDF and submitting a JD returns IDs; data survives service restarts.
 
 ### Phase 3 — AI tailoring (15 Oct)
+
 - Implement Python AI endpoints, strict Pydantic output schemas, bounded retry/timeout and safe prompts; integrate Java HTTP client with mocked-service tests.
 - **Done when:** `/tailor` creates a new tailored JSON result and refuses/flags unsupported claims.
 
 ### Phase 4 — UI and export (16–17 Oct)
+
 - Implement React upload form, JD input, progress/error display, preview page and change summary; implement Java Thymeleaf + OpenHTMLtoPDF PDF download.
 - **Done when:** complete happy path works in Docker Compose; PDF opens and is legible.
 
 ### Phase 5 — Integration (18 Oct)
+
 - Add JUnit/Spring Boot tests, pytest, contract/integration tests, file validation, negative cases, health/readiness probes and local setup instructions.
 - **Done when:** fresh clone can run locally using documented commands.
 
 ### Phase 6 — Kubernetes (19 Oct)
+
 - Build/tag images, push to registry, deploy to GKE or an available multi-node Kubernetes environment.
 - Configure 2 replicas for each backend, Services, routing, secrets, persistent DB, resource requests/limits.
 - **Done when:** app is reachable and end-to-end functionality works on the cluster.
 
 ### Phase 7 — Demonstration (20 Oct)
+
 - Show `kubectl get pods,deploy,svc` and healthy replicas.
 - Scale a backend from 2 to 3 replicas; demonstrate service routing.
 - Delete one backend Pod and observe replacement.
@@ -288,6 +310,7 @@ tailorcv/
 - **Done when:** screenshots/logs and reproducible commands exist for each demonstration.
 
 ### Phase 8 — Submission (21 Oct, before 3 PM)
+
 - Proposal <= 1,000 words and <= 2 A4 pages, including monthly cost estimate and architecture figure.
 - Source ZIP, README/deployment instructions, relevant sample data (not secrets or private CVs).
 - Prepare concise Week 13 live demo script and ensure credit/resources are monitored.
@@ -314,6 +337,7 @@ For the proposal, estimate monthly cost using the GCP pricing calculator for the
 ## 15. Codex instructions
 
 Work in small, reviewable phases. **Do not implement the whole project in one giant pass.** Start by inspecting the repository and this specification. For each phase:
+
 1. Propose the exact files to create/change and any design tradeoffs.
 2. Implement only the requested phase; preserve existing functionality.
 3. Add focused tests and run them where possible.
